@@ -19,7 +19,7 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 const goodPayload = () => ({
   iss: "https://token.actions.githubusercontent.com",
   aud: "objectcore-registry",
-  repository: "twofoldtech-dakota/objectcore",
+  repository: "smithdak/objectcore",
   exp: nowSec() + 300,
 });
 
@@ -59,7 +59,7 @@ test("verify accepts a valid RS256 token and returns its claims", async () => {
   const { v } = verifierWith([[publicJwk]]);
   const payload = goodPayload();
   const claims = await v.verify(await signJwt({ alg: "RS256", kid: KID }, payload));
-  expect(claims.repository).toBe("twofoldtech-dakota/objectcore");
+  expect(claims.repository).toBe("smithdak/objectcore");
   expect(claims.exp).toBe(payload.exp);
 });
 
@@ -108,7 +108,7 @@ test("an unknown kid forces ONE JWKS refetch (key rotation), then succeeds", asy
   // First key set is stale (empty); the forced refetch returns the rotated-in key.
   const { v, calls } = verifierWith([[], [publicJwk]]);
   const claims = await v.verify(await signJwt({ alg: "RS256", kid: KID }, goodPayload()));
-  expect(claims.repository).toBe("twofoldtech-dakota/objectcore");
+  expect(claims.repository).toBe("smithdak/objectcore");
   expect(calls()).toBe(2); // initial fetch + exactly one forced refresh
 });
 

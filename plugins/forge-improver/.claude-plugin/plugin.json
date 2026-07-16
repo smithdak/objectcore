@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "F7 self-improvement: a forge-improver subagent that proposes behavior-preserving refinements to ObjectCore's forge scaffolder code, gated by the eval-driven admission pipeline (boundary + golden + guard + full check) before any human merges.",
   "author": {
-    "name": "twofoldtech-dakota"
+    "name": "smithdak"
   },
   "license": "MIT",
   "keywords": [

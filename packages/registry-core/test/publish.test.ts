@@ -12,13 +12,13 @@ import {
 const policy: PublishPolicy = {
   issuer: "https://token.actions.githubusercontent.com",
   audience: "objectcore-registry",
-  allowedRepositories: ["twofoldtech-dakota/objectcore"],
+  allowedRepositories: ["smithdak/objectcore"],
 };
 
 const goodClaims: OidcClaims = {
   iss: policy.issuer,
   aud: policy.audience,
-  repository: "twofoldtech-dakota/objectcore",
+  repository: "smithdak/objectcore",
 };
 
 const goodBody = {
@@ -26,7 +26,7 @@ const goodBody = {
   relDir: "hello-objectcore",
   version: "0.1.0",
   sha: "abc1234",
-  repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+  repoUrl: "https://github.com/smithdak/objectcore",
 };
 
 // ── authorizePublish ──────────────────────────────────────────────────────────
@@ -61,13 +61,13 @@ test("authorizePublish restricts refs when allowedRefs is set — missing ref fa
 });
 
 test("repoUrlMatchesClaim binds the pin to the repository claim (case-insensitive, .git tolerated)", () => {
-  const repo = "twofoldtech-dakota/objectcore";
-  expect(repoUrlMatchesClaim("https://github.com/twofoldtech-dakota/objectcore", repo)).toBe(true);
-  expect(repoUrlMatchesClaim("https://github.com/Twofoldtech-Dakota/ObjectCore.git", repo)).toBe(true);
-  expect(repoUrlMatchesClaim("https://github.com/twofoldtech-dakota/objectcore/", repo)).toBe(true);
+  const repo = "smithdak/objectcore";
+  expect(repoUrlMatchesClaim("https://github.com/smithdak/objectcore", repo)).toBe(true);
+  expect(repoUrlMatchesClaim("https://github.com/SmithDak/ObjectCore.git", repo)).toBe(true);
+  expect(repoUrlMatchesClaim("https://github.com/smithdak/objectcore/", repo)).toBe(true);
   expect(repoUrlMatchesClaim("https://github.com/attacker/objectcore", repo)).toBe(false);
-  expect(repoUrlMatchesClaim("https://evil.example/twofoldtech-dakota/objectcore", repo)).toBe(false);
-  expect(repoUrlMatchesClaim("https://github.com/twofoldtech-dakota/objectcore", "")).toBe(false);
+  expect(repoUrlMatchesClaim("https://evil.example/smithdak/objectcore", repo)).toBe(false);
+  expect(repoUrlMatchesClaim("https://github.com/smithdak/objectcore", "")).toBe(false);
 });
 
 test("MockOidcVerifier maps known tokens and throws on unknown", async () => {
@@ -90,7 +90,7 @@ test("parsePublish accepts a well-formed body and computes ref server-side", () 
       version: "0.1.0",
       sha: "abc1234",
       ref: "hello-objectcore--v0.1.0",
-      repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+      repoUrl: "https://github.com/smithdak/objectcore",
     });
   }
 });

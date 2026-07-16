@@ -12,7 +12,7 @@ const gitPlugins: WorkspacePlugin[] = [
   { manifest: { name: "beta-plugin", version: "1.0.0", description: "Beta", author: { name: "Dakota" } }, dir: "/x/plugins/beta-plugin", relDir: "beta-plugin" },
 ];
 const base = { name: "objectcore", owner: { name: "Dakota" }, pluginRoot: "./plugins" };
-const repoUrl = "https://github.com/twofoldtech-dakota/objectcore";
+const repoUrl = "https://github.com/smithdak/objectcore";
 const shaPin = { "alpha-plugin": "sha-alpha", "beta-plugin": "sha-beta" };
 
 test("DB ingest -> serve round-trips to the same pinned catalog as the Git source", async () => {

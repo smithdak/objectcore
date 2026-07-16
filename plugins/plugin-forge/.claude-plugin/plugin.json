@@ -2,7 +2,7 @@
   "name": "plugin-forge",
   "version": "0.0.2",
   "description": "ObjectCore meta-plugin: generates new plugins and their catalog entries via the spec-driven /forge pipeline — grill the idea, plan the PluginSpec, scaffold deterministically, then pass the validation + activation gate.",
-  "author": { "name": "twofoldtech-dakota" },
+  "author": { "name": "smithdak" },
   "license": "MIT",
   "keywords": ["objectcore", "meta", "generator", "scaffold", "spec-driven"]
 }

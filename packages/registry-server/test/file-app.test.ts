@@ -7,7 +7,7 @@ import { fileApp } from "../src/file-app";
 
 const pinned = {
   name: "objectcore",
-  owner: { name: "twofoldtech-dakota" },
+  owner: { name: "smithdak" },
   plugins: [
     {
       name: "alpha-plugin",

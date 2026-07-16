@@ -74,7 +74,7 @@ The same split as `deriveCatalog`'s sources/sinks and the eval `Judge`:
 
 Self-service publishing is turned on. **Server** (Fly secrets):
 `OBJECTCORE_OIDC_AUDIENCE=https://registry.objectcore.ai`,
-`OBJECTCORE_PUBLISH_REPOS=twofoldtech-dakota/objectcore` (issuer left default = GitHub
+`OBJECTCORE_PUBLISH_REPOS=smithdak/objectcore` (issuer left default = GitHub
 Actions). **Publisher** (GitHub repo variables): `OBJECTCORE_REGISTRY_URL` +
 `OBJECTCORE_OIDC_AUDIENCE`, both `https://registry.objectcore.ai` (the audience must match
 both sides). **Proven end-to-end** (run 28260201962): a real GitHub Actions OIDC token →
