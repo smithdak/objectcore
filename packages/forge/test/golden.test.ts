@@ -120,11 +120,11 @@ const SPECS: { name: string; spec: PluginSpec }[] = [
       name: "golden-full",
       description: "A plugin exercising every emit branch.",
       version: "1.2.3",
-      author: { name: "twofoldtech-dakota" },
+      author: { name: "smithdak" },
       license: "Apache-2.0",
       keywords: ["objectcore", "full"],
       category: "workflow",
-      repository: "https://github.com/twofoldtech-dakota/objectcore",
+      repository: "https://github.com/smithdak/objectcore",
       skills: [{ name: "main-skill", description: "Use when X.", body: "# Main Skill\n\nReal body.\n" }],
       commands: [{ name: "do-cmd", description: "Do the cmd.", body: "# /do-cmd\n\nCustom body.\n" }],
       agents: [

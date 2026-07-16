@@ -201,7 +201,7 @@ Stage 3 operates the HTTP backend and flips the catalog source from Git to a DB 
   not trusted), the **provenance gate re-enforced** (`requiresProvenance` from `@objectcore/release`
   OR a declared `bundlesMcp`), then a write through the `CatalogStore` port (finally populating the
   `provenance` column). Sink-gated; **armed and live** (`OBJECTCORE_OIDC_AUDIENCE=https://registry.objectcore.ai`,
-  `OBJECTCORE_PUBLISH_REPOS=twofoldtech-dakota/objectcore` on Fly; the publisher CLI is armed via the
+  `OBJECTCORE_PUBLISH_REPOS=smithdak/objectcore` on Fly; the publisher CLI is armed via the
   GitHub repo variables `OBJECTCORE_REGISTRY_URL` + `OBJECTCORE_OIDC_AUDIENCE`). Authorization is
   also **ref-gated** (`OBJECTCORE_PUBLISH_REFS`, default `refs/heads/main`) — a workflow on a random
   branch of an allowlisted repo cannot publish — and the published `repoUrl` must match the token's
@@ -313,7 +313,7 @@ quick-start vs full grill; the `choosing-a-seeded-theme` skill carries the prese
 
 `scripts/_workspace.ts` (not runnable — underscore prefix) is the single place that turns `objectcore.config.json` + the plugins dir into the `(plugins, catalog)` pair via one `deriveCatalog` call. `build-marketplace`, `check-catalog`, `eval`, `forge-scaffold`, `forge-meta`, and the `release-*` CLIs all import `loadWorkspace`/`loadConfig` from it — so the "single derivation path" holds at the wiring level, not just the function level. `scripts/_finalize.ts`'s `syncAndGate` is the shared post-scaffold tail (re-derive → validate → write → output+coverage evals) used by both forge CLIs. `scripts/_release.ts` is the analogous edge for the release CLIs (changeset reading, the `plugin.json` version edit, git tag/sha/remote helpers, the MCP-bundle scan).
 
-**Identity is single-sourced.** Plugin `author` is not hardcoded — the forge CLIs default a scaffolded plugin's `author` to `objectcore.config.json`'s `owner` (`twofoldtech-dakota`). The four hand-written plugins are aligned to the same value; change identity in one place (the config) and re-derive.
+**Identity is single-sourced.** Plugin `author` is not hardcoded — the forge CLIs default a scaffolded plugin's `author` to `objectcore.config.json`'s `owner` (`smithdak`). The four hand-written plugins are aligned to the same value; change identity in one place (the config) and re-derive.
 
 ### Module map (`packages/registry-core/src`)
 - `types.ts` — domain types mirroring the verified Claude Code plugin/marketplace spec. **Read the doc comments**; they encode spec rules (e.g. `repository` MUST be a string, `keywords` MUST be an array — these are hard load errors in Claude Code, not style).

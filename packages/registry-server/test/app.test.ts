@@ -52,7 +52,7 @@ test("a pinned derive resolver (shaPin+repoUrl) yields git-subdir sources over t
     source: new MockSource(fixture),
     derive: async () => ({
       ...base,
-      repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+      repoUrl: "https://github.com/smithdak/objectcore",
       shaPin: { "alpha-plugin": "abc123", "beta-plugin": "def456" },
     }),
   });
@@ -62,7 +62,7 @@ test("a pinned derive resolver (shaPin+repoUrl) yields git-subdir sources over t
   }
   expect(catalog.plugins[0].source).toMatchObject({
     source: "git-subdir",
-    url: "https://github.com/twofoldtech-dakota/objectcore",
+    url: "https://github.com/smithdak/objectcore",
     path: "plugins/alpha-plugin",
     sha: "abc123",
     ref: "alpha-plugin--v0.1.0",
@@ -273,15 +273,15 @@ test("GET /v1/events/stats returns aggregates with the token, 401 without/with n
 const policy: PublishPolicy = {
   issuer: "https://token.actions.githubusercontent.com",
   audience: "objectcore-registry",
-  allowedRepositories: ["twofoldtech-dakota/objectcore"],
+  allowedRepositories: ["smithdak/objectcore"],
 };
-const goodClaims: OidcClaims = { iss: policy.issuer, aud: policy.audience, repository: "twofoldtech-dakota/objectcore" };
+const goodClaims: OidcClaims = { iss: policy.issuer, aud: policy.audience, repository: "smithdak/objectcore" };
 const publishBody = {
   manifest: { name: "hello-objectcore", version: "0.1.0", description: "Demo", keywords: ["demo"] },
   relDir: "hello-objectcore",
   version: "0.1.0",
   sha: "abc1234",
-  repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+  repoUrl: "https://github.com/smithdak/objectcore",
 };
 
 function publishApp(store = new InMemoryCatalogStore(), fixture: Record<string, OidcClaims> = { "tok-ok": goodClaims }) {
@@ -375,7 +375,7 @@ test("POST /v1/plugins binds repoUrl to the token's repository claim (403 on mis
   // Case and a trailing .git are cosmetic, not identity — still the claimed repo.
   const cosmetic = await post(
     app,
-    { ...publishBody, repoUrl: "https://github.com/Twofoldtech-Dakota/ObjectCore.git" },
+    { ...publishBody, repoUrl: "https://github.com/SmithDak/ObjectCore.git" },
     "tok-ok",
   );
   expect(cosmetic.status).toBe(201);

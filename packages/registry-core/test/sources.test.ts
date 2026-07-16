@@ -11,7 +11,7 @@ const row = (name: string, over: Partial<StoredPlugin> = {}): StoredPlugin => ({
   version: "0.1.0",
   sha: `sha-${name}`,
   ref: `${name}--v0.1.0`,
-  repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+  repoUrl: "https://github.com/smithdak/objectcore",
   ...over,
 });
 

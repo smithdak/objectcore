@@ -19,12 +19,12 @@ test("no shaPin -> derivation is byte-identical (bare path sources)", () => {
 test("shaPin upgrades the pinned entry to an immutable git-subdir source", () => {
   const cat = deriveCatalog(fixture, {
     ...opts,
-    repoUrl: "https://github.com/twofoldtech-dakota/objectcore",
+    repoUrl: "https://github.com/smithdak/objectcore",
     shaPin: { "alpha-plugin": "abc123def456" },
   });
   expect(cat.plugins[0]!.source).toEqual({
     source: "git-subdir",
-    url: "https://github.com/twofoldtech-dakota/objectcore",
+    url: "https://github.com/smithdak/objectcore",
     path: "plugins/alpha-plugin",
     sha: "abc123def456",
     ref: "alpha-plugin--v0.1.0",
