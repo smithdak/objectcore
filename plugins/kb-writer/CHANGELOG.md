@@ -1,5 +1,9 @@
 # kb-writer
 
+## 0.1.3
+
+- Repository moved: GitHub owner renamed twofoldtech-dakota → smithdak. Plugin `author` now reflects the new owner; SHA-pins minted from this version onward point at github.com/smithdak/objectcore.
+
 ## 0.1.2
 
 - Stop-hook prompt is now search-aware — check `bun run kb:search` for an existing entry before capturing, with explicit silent-stop guidance when nothing durable emerged or the lesson is already captured. The load-kb `SessionStart` hint also mentions `bun run kb:search` for on-demand retrieval.

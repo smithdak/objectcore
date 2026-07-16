@@ -1,6 +1,6 @@
 {
   "name": "hello-objectcore",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minimal demo plugin proving the ObjectCore derive + validate pipeline end to end.",
   "author": { "name": "smithdak" },
   "license": "MIT",

@@ -1,5 +1,9 @@
 # reflection
 
+## 0.1.3
+
+- Repository moved: GitHub owner renamed twofoldtech-dakota → smithdak. Plugin `author` now reflects the new owner; SHA-pins minted from this version onward point at github.com/smithdak/objectcore.
+
 ## 0.1.2
 
 - Retrieval-augmented red-gate hook (the `PostToolUse` hook now surfaces the prior lessons most likely to apply, via an inline lexical match) plus search-first / cite / `origin: reflection` / supersede guidance in the `self-reflection` agent body — so the loop reuses and revises existing lessons instead of duplicating them.
