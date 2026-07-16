@@ -1,5 +1,9 @@
 # design-forge
 
+## 0.1.1
+
+- Repository moved: GitHub owner renamed twofoldtech-dakota → smithdak. Plugin `author` now reflects the new owner; SHA-pins minted from this version onward point at github.com/smithdak/objectcore.
+
 ## 0.1.0
 
 - Seeded design themes: /design gains a quick-start fork — pick a curated preset (inkwell: quiet

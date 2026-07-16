@@ -8,7 +8,7 @@
       "name": "commit-craft",
       "source": "commit-craft",
       "description": "Write clear, conventional git commit messages from your staged changes.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "smithdak"
       },
@@ -24,7 +24,7 @@
       "name": "design-forge",
       "source": "design-forge",
       "description": "ObjectCore meta-plugin: author, theme, and consume a stack-agnostic design system from a DTCG design-token source of truth — generate accessible token scales, theme them with a resolver, and keep UI on-brand by picking semantic tokens by role — or quick-start from a curated seeded theme preset (inkwell, cathode).",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "smithdak"
       },
@@ -43,7 +43,7 @@
       "name": "forge-improver",
       "source": "forge-improver",
       "description": "F7 self-improvement: a forge-improver subagent that proposes behavior-preserving refinements to ObjectCore's forge scaffolder code, gated by the eval-driven admission pipeline (boundary + golden + guard + full check) before any human merges.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "smithdak"
       },
@@ -61,7 +61,7 @@
       "name": "hello-objectcore",
       "source": "hello-objectcore",
       "description": "Minimal demo plugin proving the ObjectCore derive + validate pipeline end to end.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "smithdak"
       },
@@ -75,7 +75,7 @@
       "name": "kb-writer",
       "source": "kb-writer",
       "description": "Surface the project knowledge base at session start and prompt capturing durable lessons at session end — the KB's automated read/write surface.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "smithdak"
       },
@@ -92,7 +92,7 @@
       "name": "knowledge-base",
       "source": "knowledge-base",
       "description": "Capture and curate durable lessons, patterns, gotchas, and decisions in ObjectCore's factory knowledge base.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "smithdak"
       },
@@ -110,7 +110,7 @@
       "name": "marketplace-builder",
       "source": "marketplace-builder",
       "description": "ObjectCore meta-plugin: governs the catalog build — derive marketplace.json from the plugin graph through the single deriveCatalog seam, validate, and keep it in sync.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "author": {
         "name": "smithdak"
       },
@@ -127,7 +127,7 @@
       "name": "meta-generator",
       "source": "meta-generator",
       "description": "ObjectCore meta-plugin: generates new meta-plugins (generators and governance plugins) from an archetype — the factory replicating itself.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "author": {
         "name": "smithdak"
       },
@@ -144,7 +144,7 @@
       "name": "plugin-forge",
       "source": "plugin-forge",
       "description": "ObjectCore meta-plugin: generates new plugins and their catalog entries via the spec-driven /forge pipeline — grill the idea, plan the PluginSpec, scaffold deterministically, then pass the validation + activation gate.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "author": {
         "name": "smithdak"
       },
@@ -161,7 +161,7 @@
       "name": "plugin-validator",
       "source": "plugin-validator",
       "description": "ObjectCore meta-plugin: governs plugin and marketplace correctness — the hard-rule checklist plus the validate + eval gate.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "author": {
         "name": "smithdak"
       },
@@ -177,7 +177,7 @@
       "name": "pr-craft",
       "source": "pr-craft",
       "description": "Generate a clear pull-request title and description from the commits on a branch, ready to open or update the PR.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "smithdak"
       },
@@ -194,7 +194,7 @@
       "name": "reflection",
       "source": "reflection",
       "description": "The reflection loop: a PostToolUse hook that auto-invokes a self-reflection subagent on a red ObjectCore gate, diagnosing the failure and capturing durable lessons into the knowledge base.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "smithdak"
       },
@@ -212,7 +212,7 @@
       "name": "release-manager",
       "source": "release-manager",
       "description": "ObjectCore meta-plugin: governs plugin releases — the Changesets-driven version, {plugin}--v{semver} tagging, SHA-pinned catalog publishing, and build-provenance/attestation flow.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "author": {
         "name": "smithdak"
       },
