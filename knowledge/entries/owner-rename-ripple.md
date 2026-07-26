@@ -1,11 +1,9 @@
 ---
-id: a-github-owner-rename-ripples-through-the-whole-publish-chain-sweep-all-plugins-changeset-allowlist-flip-in-that-order
+id: owner-rename-ripple
 type: gotcha
-title: A GitHub owner rename ripples through the whole publish chain — sweep, all-plugins changeset, allowlist flip, in that order
-tags: [release, oidc, identity, first-write-wins, registry]
+title: A GitHub owner rename ripples through every link of the release chain, in order
+tags: [owner-rename, identity, oidc, registry, sha-pin]
 created: 2026-07-16
-status: superseded
-supersededBy: owner-rename-ripple
 updated: 2026-07-26
 ---
 
