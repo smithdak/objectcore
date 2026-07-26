@@ -1,0 +1,200 @@
+{
+  "name": "objectcore",
+  "title": "The factory that refuses to ship its own slop",
+  "brief": "Show a senior technical audience what it means to put an AI-assisted build loop behind a gate that can actually fail \u2014 using the factory that generated this very demo, and letting it go red on stage.",
+  "targetDurationSec": 1200,
+  "audience": [
+    {
+      "id": "platform-architect",
+      "title": "Platform architect",
+      "cares": "Whether the guarantees are mechanical or just conventions someone remembers to follow."
+    },
+    {
+      "id": "eng-leader",
+      "title": "Engineering leader",
+      "cares": "Whether this survives a team that did not build it, and what it costs to keep running."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "catalog",
+      "kind": "artifact",
+      "ref": ".claude-plugin/marketplace.json \u2014 derived, never hand-edited; check:catalog asserts it byte-matches a fresh derivation"
+    },
+    {
+      "id": "gate-evidence",
+      "kind": "artifact",
+      "ref": "dist/eval-evidence.json \u2014 the structured record every eval run writes, green or red"
+    },
+    {
+      "id": "eval-history",
+      "kind": "metric",
+      "ref": "metrics/eval-history.jsonl \u2014 the recorded gate-health score per run, with its graded-case count"
+    },
+    {
+      "id": "kb",
+      "kind": "artifact",
+      "ref": "knowledge/entries/ \u2014 one file per captured lesson, reviewed in the PR that introduced it"
+    },
+    {
+      "id": "demo-gate",
+      "kind": "artifact",
+      "ref": "packages/demo/src/gate.ts \u2014 the deterministic checks this very demo had to pass to be built"
+    },
+    {
+      "id": "transparency-principle",
+      "kind": "source",
+      "ref": "https://www.anthropic.com/engineering/building-effective-agents \u2014 \"Prioritize transparency by explicitly showing the agent's planning steps.\""
+    },
+    {
+      "id": "live-forge",
+      "kind": "demo",
+      "ref": "demonstrated live in the forge-a-plugin beat"
+    }
+  ],
+  "beats": [
+    {
+      "id": "cold-open",
+      "kind": "opener",
+      "title": "This slide deck had to pass a test",
+      "persona": "platform-architect",
+      "durationSec": 60,
+      "narration": "Before this deck could be built, something checked that every claim on it resolves to a source, that the demo you are about to watch has a fallback, and that the prose contains none of the marketing filler on its banned list. It failed the first two times.",
+      "claims": [
+        {
+          "text": "The build refuses to emit a deck whose gate is red.",
+          "evidence": [
+            "demo-gate"
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "scene",
+        "scene": "TitleCard",
+        "props": {
+          "headline": "This slide deck had to pass a test",
+          "sub": "and it failed the first two times"
+        },
+        "transition": "fade"
+      }
+    },
+    {
+      "id": "conventions-rot",
+      "kind": "what-is",
+      "title": "Conventions rot; only checks hold",
+      "persona": "eng-leader",
+      "durationSec": 120,
+      "narration": "Every team here has a document describing how things are supposed to be done. The document is accurate on the day it is written. What actually holds a year later is the subset somebody turned into a check that fails the build."
+    },
+    {
+      "id": "derive-it",
+      "kind": "what-could-be",
+      "title": "Derive the artifact, gate the derivation",
+      "persona": "platform-architect",
+      "durationSec": 120,
+      "narration": "So nothing here is maintained by hand. The plugin catalog is derived from the plugin directories by one pure function, and a check asserts the committed file byte-matches a fresh derivation. Hand-edit it and the build fails \u2014 not in review, in CI.",
+      "claims": [
+        {
+          "text": "The catalog is a derived artifact whose committed form is asserted to match a fresh derivation.",
+          "evidence": [
+            "catalog"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "forge-live",
+      "kind": "live-demo",
+      "title": "Generating a plugin, live, against this repo",
+      "persona": "platform-architect",
+      "durationSec": 420,
+      "narration": "We are going to generate a real plugin now. Watch the left side: that is the plan it wrote before touching a file. Watch the bottom: that is the gate. I am going to stop it twice, and the second stop is where it gets something wrong.",
+      "claims": [
+        {
+          "text": "A generated plugin cannot enter the catalog until its skills are shown to fire and its agents to be delegated to.",
+          "evidence": [
+            "gate-evidence",
+            "live-forge"
+          ]
+        },
+        {
+          "text": "Showing the agent's planning steps is a stated design principle for reliable agents, not a presentation choice.",
+          "evidence": [
+            "transparency-principle"
+          ]
+        }
+      ],
+      "live": {
+        "repo": "github.com/smithdak/objectcore",
+        "task": "Run /forge to generate a plugin: grill the request into a spec, plan its trigger surfaces and eval cases, scaffold it deterministically, then run the gate.",
+        "fallback": "A recorded pass of this exact generation on a local branch, cued to the plan step. Cut on the word \"meanwhile\"; the eng leader calls it.",
+        "checkpoints": [
+          "Approve the spec before the scaffolder writes a single file.",
+          "Read the generated trigger surfaces together before the gate runs.",
+          "Decide as a room whether the surface that misroutes gets reworded or the case gets cut."
+        ],
+        "expectedFailure": "One generated skill description overlaps an existing one in the catalog, and the routing eval sends a prompt to the wrong skill. Let it go red on stage. Fix it by narrowing the description \u2014 never by weakening the case \u2014 and re-run.",
+        "traceSurfaces": [
+          "the spec it grilled out, before any file is written",
+          "every file the scaffolder emits",
+          "the catalog re-derivation",
+          "the eval gate output, including the red one"
+        ]
+      }
+    },
+    {
+      "id": "what-it-costs",
+      "kind": "what-is",
+      "title": "What this costs you",
+      "persona": "eng-leader",
+      "durationSec": 90,
+      "narration": "It is slower to add a plugin here than to write one by hand. That is the trade: the gate rejects work that a human reviewer would have waved through, and somebody has to keep the checks honest as the platform underneath changes."
+    },
+    {
+      "id": "it-compounds",
+      "kind": "what-could-be",
+      "title": "The failures become the memory",
+      "persona": "platform-architect",
+      "durationSec": 120,
+      "narration": "When the gate goes red, a subagent diagnoses it and writes the lesson into a knowledge base the next run reads on the way in. The failure you just watched is already a file. The next generation starts knowing about it.",
+      "claims": [
+        {
+          "text": "Gate failures are captured as durable entries, reviewed in the pull request that introduces them.",
+          "evidence": [
+            "kb"
+          ]
+        },
+        {
+          "text": "Gate health is recorded per run, so a change that degrades it is visible rather than argued about.",
+          "evidence": [
+            "eval-history"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-moment",
+      "kind": "star",
+      "title": "It went red on stage, and that is the argument",
+      "durationSec": 60,
+      "narration": "You watched the gate reject work that I wanted to ship. That is the only reason you should believe anything it passed.",
+      "visual": {
+        "kind": "scene",
+        "scene": "QuoteCard",
+        "props": {
+          "quote": "You watched the gate reject work that I wanted to ship.",
+          "attribution": "the only reason to believe what it passed"
+        }
+      }
+    },
+    {
+      "id": "close",
+      "kind": "close",
+      "title": "Take one check, not the factory",
+      "persona": "eng-leader",
+      "durationSec": 90,
+      "narration": "Do not copy this repository. Pick the one convention your team keeps re-litigating in review, and turn it into a check that fails the build. Then do the next one."
+    }
+  ],
+  "takeaway": "The gate configuration, the eval-case format, and the reflection subagent that turns a red gate into a written lesson \u2014 all checked in at github.com/smithdak/objectcore, and runnable against a repository you already own."
+}

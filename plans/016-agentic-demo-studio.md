@@ -73,6 +73,24 @@ its activation + delegation evals pass (rule #5). `deriveCatalog` and the
   all five), `packages/forge/src/{types,scaffold}.ts`, and `scripts/_finalize.ts`.
 - **Built on**: branch `feat/016-demo-studio`.
 
+## Build status (2026-07-26)
+
+P0–P6 are **built** on `feat/016-demo-studio`. Two departures from the plan as written,
+both recorded with reasoning in `notes/016-demo-studio-forge-gaps.md`:
+
+- **P5 — MCP is NOT bundled into the plugin.** A bundled `.mcp.json` would point at a
+  workspace package that does not resolve at an outside install site. The server is built
+  and dogfooded via the repo-root `.mcp.json` (the `knowledge-mcp` precedent); both
+  provenance-gate triggers were verified directly instead of via a publish dry run.
+- **P6 — no changeset.** The KB (`release-auto-publishes-on-merge`) records that a
+  plugin's FIRST publish needs none: merging to main tags and publishes it at its current
+  version. A changeset here would have bumped it for nothing.
+
+Still open, and only a CI run with `ANTHROPIC_API_KEY` can close them: the
+activation/delegation gate for `demo-studio` (hard rule #5 — the plugin is not
+catalog-ready until it passes) and the L3 `eval:record` before/after, which measures
+whether six new trigger surfaces perturbed catalog-wide routing.
+
 ## Phases
 
 ### P0 — Spec floor: `DemoSpec` types + strict schema

@@ -195,6 +195,16 @@ describe("de-slop lint", () => {
     expect(checkDeslop(deriveDemo(spec)).filter((i) => i.level === "error")).toEqual([]);
   });
 
+  // Found by the dogfood demo: the marketing cliché is the hyphenated adjective, and
+  // banning the bare bigram flagged an ordinary sentence about a later code generation.
+  test("bans the hyphenated cliché without flagging ordinary prose", () => {
+    const hyphenated = gate((s) => { s.beats[0]!.narration = "A next-generation platform."; });
+    expect(errorMessages(hyphenated).join()).toContain('banned filler phrase "next-generation"');
+
+    const ordinary = gate((s) => { s.beats[0]!.narration = "The next generation of the codebase starts knowing about it."; });
+    expect(errorMessages(ordinary)).toEqual([]);
+  });
+
   test("filler density warns above the budget but never blocks", () => {
     const spec = validDemo();
     spec.beats[0]!.narration = "This is really very truly simply just actually basically it.";

@@ -30,6 +30,11 @@ bun run design:scaffold <spec.json> [--force]  # plan 012: scaffold a DTCG desig
 bun run design:seed <preset> [--name <s>] [--themes a,b] [--list] [--force]  # plan 014: instantiate a curated seeded theme preset (inkwell|cathode) — quick start, same self-gate
 bun run design:check             # plan 012: validate + contrast-gate every design/ system (part of check)
 bun run design:build             # plan 012/014: derive the token views (CSS vars, per-theme JSON, Tailwind, Style Dictionary, spec.html + contrast-proof.json)
+bun run demo:seed <preset> [--name <s>] [--list] [--force]  # plan 016: instantiate a curated demo archetype (enterprise-agentic|platform-migration) — quick start, same self-gate
+bun run demo:scaffold <brief.json> [--force]  # plan 016: expand a brief into a gate-passing demo skeleton (transparent by construction)
+bun run demo:check               # plan 016: gate every demos/ demo — structure, live safety, evidence, de-slop, budget, video balance (part of check)
+bun run demo:build [<name>]      # plan 016: derive the demo views (Slidev deck, operator runbook, evidence appendix + proof, Remotion storyboard, canvases)
+bun run demo:mcp                 # plan 016: serve the demo engine over MCP/stdio (packages/demo-mcp) — demo://list + demo://storyboard/{name} + demo_check/demo_storyboard/demo_render
 bun run release:status           # Stage 2: preview what the pending changesets would release
 bun run release:version          # Stage 2: consume changesets -> bump plugin.json + changelogs + re-derive
 bun run release:publish          # Stage 2: tag {plugin}--v{semver}, SHA-pin the catalog, (CI) attest
@@ -46,7 +51,7 @@ bun run kb:verify [<id>...]  # plan 013: classify active entries fresh|stale|unv
 bun run kb:cite <id> [--source '<ref>']  # plan 013: record a citation to metrics/kb-usage.jsonl (the KB's usage/ROI signal for kb:stats)
 bun run kb:stats                 # plan 013: join entries × citations × staleness → rank prune candidates (stale→never-cited→oldest)
 bun run kb:mcp                   # plan 013: serve the KB over MCP/stdio (packages/knowledge-mcp) — kb://index + kb://entries/{id} + kb_search/kb_add/kb_cite
-bun run check                    # the one-command gate = tsc + check:quality + check:security + check:catalog + kb:check + design:check + test + eval (CI runs this verbatim)
+bun run check                    # the one-command gate = tsc + check:quality + check:security + check:catalog + kb:check + design:check + demo:check + test + eval (CI runs this verbatim)
 bun run clean:git                # git hygiene: prune stale worktrees + delete merged branches (--dry-run | --gone | --remote)
 bun run registry:dev            # serve http://localhost:8787/v1/marketplace.json (Git source, dev loop)
 bun run registry:prod           # Stage 3: serve the SHA-pinned catalog from the registry DB (RegistryDbSource); OBJECTCORE_SOURCE=db|file
@@ -325,6 +330,39 @@ systems keep gating via presence-checked `LEGACY_PAIRS`. `design:build` derives 
 role docs with per-preset editorial copy from `spec-copy.json`, and a contrast-proof table computed
 from `proveContrast`) — and `contrast-proof.json`. `plugins/design-forge`'s `/design` command forks
 quick-start vs full grill; the `choosing-a-seeded-theme` skill carries the preset inventory.
+
+### demo studio + `@objectcore/demo` (plan 016)
+
+`packages/demo` is the demo engine (zero-dep pure core, same ports+adapters discipline):
+a strict `DemoSpec` floor → the **`deriveDemo` seam** (resolve personas + evidence + the
+beat timeline) → the deterministic gate → sinks. Demos live in `demos/<name>/`
+(`demo.json` + `evals/demo.json`); `demo:check` gates every committed demo inside
+`bun run check`.
+
+The architectural bet: the research brief's quality rules become **required structure and
+a deterministic gate**, not prose advice — the `design:check` move applied to content.
+The gate fails (never warns) on a broken Sparkline (opener first, close last, a STAR
+moment, ≥2 what-is ⇄ what-could-be switches), a demo with **no live beat at all** or a
+live beat missing checkpoints or declared `traceSurfaces`, an **unbacked claim**, banned
+marketing filler, a magnitude word in a beat citing no `metric` evidence, a runtime
+outside the slot, and a **video track that outweighs the live run**. `evidence.ts`'s
+`proveEvidence` is the single source — the gate's verdict and the audience's evidence
+appendix are literally the same evaluation, the `design/proof.ts` discipline
+(gate ≡ proof), and it is the plan's reusable primitive.
+
+Sinks: `SlidevSink` (deck), `RunbookSink` (operator choreography — prep derived from the
+live beats themselves), `EvidenceSink` (appendix + JSON proof), `StoryboardSink` (Remotion
+scene manifest) and `CanvasSink` (architecture diagrams with **derived** positions).
+The schema **forbids a `visual` on a `live-demo` beat**: pre-rendering the agentic run is
+the documented failure mode, encoded as a type constraint. We emit the formats Remotion
+and tldraw consume and depend on neither — which keeps their licences on the operator's
+side of the line. `@objectcore/demo-mcp` is the access seam (the `knowledge-mcp`
+precedent: the only demo-side `@modelcontextprotocol/sdk` dependent), dogfooded via the
+repo-root `.mcp.json`; its `demo_render` is sink-gated and refuses a red demo.
+`plugins/demo-studio` is the runbook: `/demo` (quick-start vs full authoring fork), three
+craft skills, and three agents (`demo-critic`, `live-demo-choreographer`,
+`evidence-hunter`) plus self-gating `SubagentStop`/`Stop` hooks. Dogfooded →
+`demos/objectcore/`.
 
 ### Repo CLI wiring (`scripts/_workspace.ts`, `scripts/_finalize.ts`)
 

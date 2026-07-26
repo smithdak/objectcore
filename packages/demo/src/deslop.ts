@@ -19,11 +19,16 @@
 import type { DemoOutput, DerivedBeat } from "./derive";
 import type { DemoIssue } from "./schema";
 
-/** Marketing filler with no informational content. Any occurrence fails. */
+/** Marketing filler with no informational content. Any occurrence fails.
+ *  Keep entries as narrow as the actual cliché: the hyphenated "next-generation" is
+ *  the marketing adjective, while the bare bigram "next generation" appears in
+ *  ordinary prose ("the next generation of the codebase") and must not be flagged.
+ *  A lint that fires on legitimate writing gets switched off, which is worse than
+ *  no lint. */
 export const BANNED_PHRASES: readonly string[] = [
   "game-changing", "game changing", "revolutionary", "cutting-edge", "cutting edge",
   "best-in-class", "best in class", "world-class", "state-of-the-art",
-  "paradigm shift", "next-generation", "next generation", "turnkey",
+  "paradigm shift", "next-generation", "turnkey",
   "seamlessly", "effortlessly", "frictionless", "supercharge", "supercharged",
   "unlock the power", "harness the power", "leverage synergies", "synergy",
   "magical", "like magic", "10x developer", "rock star", "ninja",
