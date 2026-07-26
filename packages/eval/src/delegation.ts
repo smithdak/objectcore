@@ -48,6 +48,7 @@ export async function runPluginDelegation(
       level: "error",
       passed,
       confidence: decision.confidence,
+      target: c.expect,
       detail: passed
         ? `delegated to ${gotLabel} as expected${samples > 1 ? ` (majority ${hits}/${samples} — first sample flaked)` : ""}`
         : `expected ${wantLabel}, judge delegated to ${gotLabel} (majority of ${samples}; ${decision.reason})`,

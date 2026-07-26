@@ -9,3 +9,4 @@ export * from "./changeset";
 export * from "./plan";
 export * from "./changelog";
 export * from "./provenance";
+export * from "./contenthash";

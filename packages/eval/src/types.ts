@@ -87,6 +87,10 @@ export interface EvalResult {
   /** Router confidence (0..1) for activation/delegation results. Feeds the EDDOps
    *  near-miss signal: a *passed* route below threshold is a fragile green. */
   confidence?: number;
+  /** Expected skill/agent name for activation/delegation cases, or null for "no
+   *  skill/agent should fire". Structured analogue of the free-text `detail` —
+   *  lets computeHitRates (hitrate.ts) group cases per named trigger surface. */
+  target?: string | null;
 }
 
 /** Aggregate of a run, ready to print and to gate on. */
