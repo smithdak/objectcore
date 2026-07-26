@@ -21,6 +21,7 @@
     "demo:seed": "bun run scripts/demo-seed.ts",
     "demo:check": "bun run scripts/demo-check.ts",
     "demo:build": "bun run scripts/demo-build.ts",
+    "demo:render": "bun run scripts/demo-render.ts",
     "demo:mcp": "bun run packages/demo-mcp/src/main.ts",
     "forge:improve": "bun run scripts/forge-improve.ts",
     "forge:suggest": "bun run scripts/forge-suggest.ts",

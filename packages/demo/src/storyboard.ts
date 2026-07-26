@@ -49,12 +49,34 @@ export interface StoryboardCanvas {
   issues: DemoIssue[];
 }
 
+/** A recorded segment standing in for one live beat. The gate already REQUIRES every
+ *  live beat to declare a fallback; this is that fallback made renderable, derived from
+ *  the beat rather than authored twice. Rendering it does not violate the
+ *  never-pre-render-the-agentic-run rule — it IS the safety net that rule assumes, and
+ *  the runbook still cues it manually. */
+export interface BRollSegment {
+  beatId: string;
+  beatTitle: string;
+  repo: string;
+  /** The command, as the operator would type it. */
+  task: string;
+  /** What the recording must keep visible — the same list the gate enforces. */
+  traceSurfaces: string[];
+  checkpoints: string[];
+  /** The failure the live run is meant to hit, if one is planned. */
+  expectedFailure?: string;
+  fallback: string;
+  durationInFrames: number;
+}
+
 export interface Storyboard {
   fps: number;
   /** Total frames across the whole demo (including the un-videoed parts). */
   totalFrames: number;
   scenes: StoryboardScene[];
   canvases: StoryboardCanvas[];
+  /** One per live beat — the renderable form of its required fallback. */
+  broll: BRollSegment[];
   /** Seconds covered by a visual — what `checkVideoBalance` measures. */
   visualSec: number;
   /** Seconds of live agentic run — the substance the video must not outweigh. */
@@ -74,11 +96,26 @@ export function buildStoryboard(output: DemoOutput, opts: StoryboardOptions = {}
   const fps = opts.fps ?? DEFAULT_FPS;
   const scenes: StoryboardScene[] = [];
   const canvases: StoryboardCanvas[] = [];
+  const broll: BRollSegment[] = [];
   let visualSec = 0;
   let liveSec = 0;
 
   for (const b of output.beats) {
-    if (b.beat.kind === "live-demo") liveSec += b.beat.durationSec;
+    if (b.beat.kind === "live-demo" && b.beat.live) {
+      liveSec += b.beat.durationSec;
+      const l = b.beat.live;
+      broll.push({
+        beatId: b.beat.id,
+        beatTitle: b.beat.title,
+        repo: l.repo,
+        task: l.task,
+        traceSurfaces: l.traceSurfaces ?? [],
+        checkpoints: l.checkpoints,
+        ...(l.expectedFailure === undefined ? {} : { expectedFailure: l.expectedFailure }),
+        fallback: l.fallback,
+        durationInFrames: durationFrames(b.beat.durationSec, fps),
+      });
+    }
 
     const visual = b.beat.visual;
     if (!visual) continue;
@@ -104,6 +141,7 @@ export function buildStoryboard(output: DemoOutput, opts: StoryboardOptions = {}
     totalFrames: durationFrames(output.totalSec, fps),
     scenes,
     canvases,
+    broll,
     visualSec,
     liveSec,
   };

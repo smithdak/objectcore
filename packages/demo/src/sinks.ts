@@ -813,6 +813,10 @@ export class StoryboardSink implements DemoSink {
             "Scenes cover the framing beats only. The live agentic run is never " +
             "pre-rendered — rendering it would reproduce the opaque-reel failure mode.",
           scenes: board.scenes,
+          canvases: board.canvases.map((c) => ({ beatId: c.beatId, nodes: c.nodes, edges: c.edges })),
+          broll: board.broll,
+          title: output.spec.title,
+          takeaway: output.spec.takeaway,
         },
         null,
         2,
