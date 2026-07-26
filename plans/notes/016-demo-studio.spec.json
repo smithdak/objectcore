@@ -1,0 +1,179 @@
+{
+  "name": "demo-studio",
+  "description": "Produce technical demos that are substantive and observable rather than polished reels \u2014 structure the narrative arc, choreograph a live agentic segment with visible traces and a planned recoverable failure, back every claim with verifiable evidence, and gate the whole thing deterministically.",
+  "version": "0.0.1",
+  "license": "MIT",
+  "category": "generator",
+  "keywords": [
+    "objectcore",
+    "generator",
+    "demo",
+    "presentation",
+    "narrative",
+    "live-demo",
+    "evidence"
+  ],
+  "skills": [
+    {
+      "name": "structuring-a-demo",
+      "description": "Structure a technical demo or talk as a sequence of typed beats \u2014 the opener, the what-is / what-could-be contrast, the STAR moment, and the value close \u2014 with every claim backed by evidence and the runtime fitting the slot. Use when planning the arc of a demo or presentation, when a demo drags or its ending falls flat, or when deciding what goes on stage and in what order. For the live segment itself use demoing-agents-transparently; for a ready-made starting point use choosing-a-demo-archetype.",
+      "body": "# Structuring a demo\n\nThe failure mode this prevents is **proving the build instead of guiding the room**:\na chronological tour of what you made, which nobody can retell afterwards.\n\n## The arc\n\nA demo is a sequence of typed **beats**, and the type sequence is what makes it an arc:\n\n| Beat | Job |\n|---|---|\n| `opener` | One concrete moment the audience has personally lived. A scene, not a statistic. |\n| `what-is` | The current painful reality, in their units. |\n| `what-could-be` | What the change makes possible. |\n| `live-demo` | The substantive middle. See `demoing-agents-transparently`. |\n| `star` | The one line you want repeated in a hallway tomorrow. |\n| `tell-show-tell` | State it, show it, restate it. Use to reinforce a beat that must land. |\n| `close` | The value close: what to do next, and what they take with them. |\n\n**Oscillate.** Alternate `what-is` and `what-could-be` at least twice. A single\nbefore/after is a product tour; the repeated contrast is what builds the arc. Beats of\nother kinds may sit between the poles without breaking the contrast.\n\n## Rules the gate enforces\n\nRun `bun run demo:check`. It fails, not warns, on:\n\n- a first beat that is not an `opener`, or a last beat that is not a `close`\n- no `star` beat \u2014 a demo with no STAR moment has nothing to retell\n- fewer than two `what-is` \u21c4 `what-could-be` switches\n- planned runtime more than 15% off the declared `targetDurationSec`\n- any claim with no backing evidence (see below)\n- marketing filler, unsupportable absolutes, or a magnitude word in a beat that cites no\n  `metric` evidence \u2014 \"significantly faster\" is a claim with a number behind it and slop\n  without one\n\nIt warns on a declared persona no beat answers, and on a live beat with no planned\nrecoverable failure.\n\n## Anchor beats to people\n\nDeclare each audience persona with what they silently ask of every beat (`cares`), then\nset `persona` on the beats that answer them. A persona nobody's beat serves is a person\nsitting through someone else's demo.\n\n## Claims carry evidence\n\nEvery assertion is a `claim` referencing ids in the demo's `evidence` registry\n(`source` | `metric` | `artifact` | `demo`). The evidence appendix the audience is handed\nis rendered from the same rows the gate measures, so an unbacked claim cannot reach a\nslide. If you cannot cite it, cut it or demonstrate it live.\n\n## Working shape\n\n1. `bun run demo:scaffold <brief.json>` \u2014 a gate-passing skeleton with the arc laid out,\n   or `bun run demo:seed <archetype>` to start from a curated one.\n2. Write the bodies. The scaffolder marks unwritten ones and `demo:check` keeps warning.\n3. `bun run demo:check`, then `bun run demo:build` for the deck, runbook, and appendix.\n"
+    },
+    {
+      "name": "demoing-agents-transparently",
+      "description": "Design the LIVE segment of a demo where an AI agent does real work on a real repo on stage \u2014 what stays visible while it runs, where the human-in-the-loop checkpoints go, which failure to let happen on purpose, and what the recorded fallback is. Use when planning or de-risking a live agentic demo, when deciding whether to run live or pre-record, or when worried a demo will break in front of an audience.",
+      "body": "# Demoing agents transparently\n\nThe rule, from the record: **the demos that land show the agent's real work; the ones\nthat destroy credibility are pre-recorded magic tricks.** A technical audience that\ncannot see what the agent did will assume the worst and, given a recording, will\nreverse-engineer it frame by frame. Magic doesn't have an error log.\n\n## Non-negotiables for a live beat\n\n**A real repo and a real task.** A scratch repository built to make the demo work reads\nas one, and the questions afterwards will find it. Pick something the audience would\nrecognize as real, and a task that is non-trivial enough to be worth watching.\n\n**Declare what stays visible.** `traceSurfaces` is a required field, not a nicety \u2014 the\nplan step list, every tool call as it is made, subagent handoffs, the gate output. If\nthe audience cannot see the agent working, you are showing them a reel with extra steps.\n\n**Checkpoints are a feature.** Human-in-the-loop stops are the thing that makes this\nusable in an enterprise, so put them on screen: approve the plan before anything is\nwritten, read the diff together, decide as a room whether a failing edge case ships.\n\n**Plan the failure.** The single strongest credibility signal available is a genuine,\nrecoverable failure on stage. Choose one you know about \u2014 an edge case the first pass\nmisses \u2014 declare it in `expectedFailure`, and do not rescue it early. Recovering in\nfront of the room is the reason they should believe the parts that worked.\n\n**Stage a fallback anyway.** Live is the riskiest thing on stage. Record the exact run\ntoday, cue it to the plan step, and decide in advance who calls the cut and on what\nword. A fallback preserves the beat; it does not replace it.\n\n## What NOT to do\n\n- Do not render the agentic run as video. That reproduces the exact failure the record\n  documents: an opaque reel a skeptical room will pick apart. Video is for the frame \u2014\n  opener, transitions, B-roll \u2014 never the substantive middle.\n- Do not summarize what the agent did after the fact. Narrate it while it happens.\n- Do not hide the human in the loop to make it look more autonomous. The oversight is\n  the product, not an embarrassment.\n\n## Before you walk on\n\n`bun run demo:build` emits a runbook whose prep checklist is derived from your own live\nbeats: warm the repo, run the task end to end today, stage the fallback, confirm every\ntrace surface is legible from the back of the room.\n"
+    },
+    {
+      "name": "choosing-a-demo-archetype",
+      "description": "Pick a READY-MADE demo archetype instead of authoring one \u2014 the curated inventory (enterprise-agentic = a transparent live agentic build; platform-migration = agent-assisted migration of one module) and when an archetype beats a custom grill. Use when the user wants a quick-start demo, an off-the-shelf presentation to adapt, or asks which demo archetype fits their audience. This is about DEMOS, not design themes \u2014 seeded design/color presets are choosing-a-seeded-theme.",
+      "body": "# Choosing a demo archetype\n\nA curated archetype is a complete, checked-in demo you instantiate and edit \u2014 a starting\nposition, not a privileged one. It runs the same seam, the same gate, and the same sinks\nas one you author from scratch. Every archetype's gate-green claim is re-measured by the\ntest suite on each CI run, so a starting point can actually be trusted.\n\n## The inventory\n\n**`enterprise-agentic`** \u2014 20 minutes. An agent does a real, non-trivial task on a real\nrepo with its planning, tool calls, and one genuine failure on screen. Reach for it with\na senior technical audience that has seen polished AI reels and did not believe them.\n\n**`platform-migration`** \u2014 30 minutes. Agent-assisted migration of one module, where the\nvaluable artifact is not the diff but the list of call sites it flagged as uncertain.\nReach for it with a delivery-accountable audience weighing a multi-quarter migration\nthey cannot staff.\n\n```\nbun run demo:seed --list                          # the inventory\nbun run demo:seed enterprise-agentic --name acme  # instantiate under your own name\n```\n\n## Archetype or author from scratch?\n\nTake an archetype when the *shape* of your demo matches one of the above and only the\nspecifics differ. Author from scratch (`bun run demo:scaffold`) when the audience, the\narc, or the artifact is genuinely different \u2014 forcing an ill-fitting archetype produces a\ndemo about the archetype.\n\n## After instantiating\n\nEvery archetype ships `REPLACE ME` fields \u2014 the repo, and metric refs pointing at your\nown numbers. Replace them before you present: a demo citing a placeholder is exactly the\nunbacked claim the evidence gate exists to catch. Then `bun run demo:check`.\n\nThis is not the design-system preset chooser. Seeded *design themes* (inkwell, cathode)\nare a different plugin's territory \u2014 see `choosing-a-seeded-theme`.\n"
+    }
+  ],
+  "commands": [
+    {
+      "name": "demo",
+      "description": "Produce a demo that is substantive and observable \u2014 quick-start from a curated archetype, or grill a brief into a full demo spec, then gate it.",
+      "body": "---\ndescription: Produce a demo that is substantive and observable \u2014 quick-start from a curated archetype, or grill a brief into a full demo spec, then gate it.\n---\n# /demo\n\nTwo paths, one gate. Both end at `bun run demo:check`.\n\n## Quick start \u2014 from a curated archetype\n\nWhen the shape of an existing archetype matches and only the specifics differ:\n\n```\nbun run demo:seed --list\nbun run demo:seed <archetype> --name <your-demo>\n```\n\nLoad `choosing-a-demo-archetype` to pick. Then replace the `REPLACE ME` fields (the repo,\nyour own metric refs) \u2014 a placeholder citation is exactly the unbacked claim the evidence\ngate exists to catch.\n\n## Full authoring \u2014 grill, then scaffold\n\nWhen the audience, arc, or artifact is genuinely different.\n\n**1. Grill.** Load `structuring-a-demo`. Resolve before scaffolding: who is in the room\nand what each of them silently asks of every beat; the slot length; the real repo and the\nreal task for the live segment; what they walk away able to use. Do not proceed while any\nanswer is \"it depends\".\n\n**2. Scaffold.** Write the brief as JSON (`name`, `title`, `brief`, `targetDurationSec`,\n`audience[]`, `repo`, `task`, `takeaway`) and run:\n\n```\nbun run demo:scaffold <brief.json>\n```\n\nYou get a gate-passing skeleton: the arc laid out, the live beat pre-wired with a\nfallback, checkpoints, and trace surfaces, and durations summing exactly to the slot.\n\n**3. Write the bodies.** Unwritten ones carry a visible marker and `demo:check` warns\nuntil they are filled. Load `demoing-agents-transparently` for the live beat \u2014 delegate\nto `live-demo-choreographer` if it deserves its own pass. Delegate to `evidence-hunter`\nto source the claims.\n\n**4. Gate, then critique.**\n\n```\nbun run demo:check     # structure, live safety, evidence, de-slop, budget\nbun run demo:build     # deck.md, runbook.md, evidence.md + evidence-proof.json\n```\n\nThen delegate to `demo-critic` for the adversarial pass. The gate proves the demo is\nsound; the critic asks whether it is worth watching.\n"
+    }
+  ],
+  "agents": [
+    {
+      "name": "demo-critic",
+      "description": "Use to adversarially review a DRAFTED demo before it is given \u2014 judging whether its takeaways are genuinely substantive, whether an attendee could retell the story, whether the agent's work is actually visible, and whether anything transferable is left behind. Delegate when a demo, deck, or talk draft needs a hard critique or a de-slop pass. NOT for diagnosing a red gate or eval failure (that is self-reflection) and NOT for designing the live segment (that is live-demo-choreographer).",
+      "body": "# Demo critic\n\nYou are a skeptical principal engineer reading a demo someone is about to give. You are\nhard to impress and you have seen a lot of polished AI content that turned out to be\nempty. Your job is to find what will not survive the room.\n\nRead `demos/<name>/demo.json` and run `bun run demo:check` first \u2014 the deterministic gate\nalready catches structure, unbacked claims, banned filler, and live-beat safety. **Do not\nspend your pass re-reporting what the gate found.** Your value is what determinism cannot\nsee.\n\nJudge four things, and say plainly which fail:\n\n1. **Substance.** Would a principal architect call the takeaways genuinely substantive,\n   or does it read as professional-looking filler? Name the specific sentences that are\n   empty.\n2. **Retellability.** Could an attendee retell the core story to a colleague a week\n   later? If you cannot state that story in one sentence, neither can they.\n3. **Transparency.** Is the agent's actual work visible while it runs, or summarized\n   afterwards? Does the live beat's declared trace surface match what the narration\n   claims the audience will see?\n4. **Transferable takeaway.** Can they walk away and use something? A takeaway that is\n   really a call to buy is a vendor pitch, and this audience will name it as one.\n\nReport as: a verdict per dimension, the specific lines that fail, and the smallest edit\nthat would fix each. Propose concrete replacement wording \u2014 never \"make it stronger\".\n\nIf the demo is good, say so and stop. Manufacturing objections to look rigorous is its\nown kind of slop.\n",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ]
+    },
+    {
+      "name": "live-demo-choreographer",
+      "description": "Use to design the LIVE segment of a demo: which real repository and task the agent runs on stage, which traces stay visible, where the human-in-the-loop checkpoints go, which edge-case failure to let happen deliberately, and what the recorded fallback is cued to. Delegate when planning or rehearsing a live on-stage agentic run. NOT for critiquing a finished demo (that is demo-critic).",
+      "body": "# Live-demo choreographer\n\nYou design the live segment of a demo: the part where an agent does real work on a real\nrepository in front of an audience. You produce choreography, not prose.\n\nGiven the demo's brief and audience, decide and return:\n\n- **The repo.** Real and recognizable as real. If the user proposes a scratch repo built\n  for the demo, push back \u2014 the audience will notice, and it costs the whole demo its\n  credibility.\n- **The task, exactly as it will be typed.** Non-trivial enough to be worth watching,\n  small enough to finish in the beat's budget. Prefer tasks with a natural edge case.\n- **Trace surfaces.** What is visibly on screen throughout: the plan step list, every\n  tool call, subagent handoffs, test or gate output. If you cannot name at least three,\n  the beat is not observable enough to be worth doing live.\n- **Checkpoints.** Where the human stops it, and what decision is made at each stop.\n  These are shown deliberately \u2014 the oversight is the product.\n- **The planned failure.** Which edge case the first pass will miss, why you are\n  confident it will, and how it recovers. Say explicitly that it must not be rescued\n  early.\n- **The fallback.** What was recorded, what it is cued to, who calls the cut and on what\n  word.\n\nRehearse the timing against the beat's `durationSec` and say if it does not fit; a live\nbeat that overruns eats the close.\n\nWrite the result into the demo's `live-demo` beat and run `bun run demo:check` \u2014 the gate\nrequires checkpoints and trace surfaces, and warns when no failure is planned. Return the\nchoreography and the gate result, not a narrative about your process.\n",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Edit"
+      ]
+    },
+    {
+      "name": "evidence-hunter",
+      "description": "Use to find and VERIFY the sources backing the claims a demo makes \u2014 locating the citation, metric, artifact, or live demonstration for each assertion, confirming it says what the claim says, and reporting which claims cannot be backed and should be cut. Delegate when a demo's claims need sourcing or fact-checking before it is presented.",
+      "body": "# Evidence hunter\n\nYou find and verify what actually backs the claims in a demo, and you are the reason its\nevidence appendix can be handed to a skeptical audience.\n\nFor each claim in `demos/<name>/demo.json`:\n\n1. **Find the real source.** A URL, a checked-in artifact, a commit, a dashboard, or a\n   thing demonstrated live. Search the repository and the web as needed.\n2. **Verify it says what the claim says.** This is the whole job. A source that is\n   adjacent to the claim, or that supports a weaker version of it, does not back it.\n3. **Classify it** \u2014 `source` (external citation), `metric` (a measured number, with its\n   provenance in `ref`), `artifact` (inspectable: file, commit, PR), or `demo`\n   (demonstrated live on stage).\n4. **Report unbackable claims plainly.** Say which claims you could not source and\n   recommend either cutting them or weakening them to what the evidence supports. Never\n   invent a plausible-looking citation, and never cite something you did not open.\n\nNote that a `metric`-kind citation in a beat is what licenses magnitude words in that\nbeat's prose; without one, the gate rejects \"significantly\" and its relatives.\n\nReturn the evidence registry entries to add and, per claim, which ids back it \u2014 plus the\nlist of claims that should be cut. Then `bun run demo:check` should show 100% coverage.\n",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "WebFetch",
+        "Edit"
+      ]
+    }
+  ],
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"${CLAUDE_PLUGIN_ROOT}/hooks/on-subagent-stop.ts\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"${CLAUDE_PLUGIN_ROOT}/hooks/on-stop-gate.ts\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  },
+  "activation": [
+    {
+      "prompt": "I have 20 minutes to present our agentic delivery pipeline to a room of principal architects. How should I structure the talk?",
+      "expect": "structuring-a-demo",
+      "note": "planning the arc from scratch"
+    },
+    {
+      "prompt": "My demo drags in the middle and the ending falls flat \u2014 how do I fix the shape of it?",
+      "expect": "structuring-a-demo",
+      "note": "distinct intent: repairing an existing arc"
+    },
+    {
+      "prompt": "I'm doing a live demo where an AI agent edits a real repo on stage. What should I keep on screen while it runs, and what do I do if it breaks?",
+      "expect": "demoing-agents-transparently",
+      "note": "designing the live segment"
+    },
+    {
+      "prompt": "Should I pre-record the agent run or do it live? I'm worried it'll fail in front of the audience.",
+      "expect": "demoing-agents-transparently",
+      "note": "distinct intent: the live-vs-recorded decision"
+    },
+    {
+      "prompt": "Is there a ready-made demo I can start from instead of writing one from scratch?",
+      "expect": "choosing-a-demo-archetype",
+      "note": "quick-start instead of authoring"
+    },
+    {
+      "prompt": "Which demo archetype fits an audience deciding whether to fund a multi-quarter migration?",
+      "expect": "choosing-a-demo-archetype",
+      "note": "distinct intent: matching an archetype to an audience"
+    },
+    {
+      "prompt": "Convert this CSV file into JSON and sort it by the second column.",
+      "expect": null,
+      "note": "plain negative \u2014 clearly unrelated"
+    },
+    {
+      "prompt": "Can you book a demo of the product with the vendor for next Tuesday afternoon?",
+      "expect": null,
+      "note": "confusability negative \u2014 shares 'demo', wrong sense entirely (scheduling)"
+    },
+    {
+      "prompt": "Which seeded color preset should I pick for my app's dark mode?",
+      "expect": null,
+      "note": "confusability negative aimed at design-forge's choosing-a-seeded-theme \u2014 must not be stolen by choosing-a-demo-archetype"
+    }
+  ],
+  "delegation": [
+    {
+      "prompt": "Here's the demo I drafted for next week \u2014 tear it apart. Is any of this actually substantive or does it read like AI slop?",
+      "expect": "demo-critic",
+      "note": "the adversarial review of a finished draft"
+    },
+    {
+      "prompt": "Design the live coding segment for my demo: pick the repo and the task, decide where I stop for questions, and which failure I should let happen.",
+      "expect": "live-demo-choreographer",
+      "note": "designing the live beat"
+    },
+    {
+      "prompt": "My demo claims a 40% cycle-time reduction and that agents catch more bugs pre-merge. Find what actually backs each of those and tell me which I should cut.",
+      "expect": "evidence-hunter",
+      "note": "sourcing and verifying claims"
+    },
+    {
+      "prompt": "Add a category column to the registry DB schema and write the migration.",
+      "expect": null,
+      "note": "ordinary build work \u2014 must not be hijacked by any demo agent"
+    },
+    {
+      "prompt": "`bun run check` is red \u2014 an activation eval routed to the wrong skill. Diagnose it.",
+      "expect": null,
+      "note": "gate-failure diagnosis is self-reflection's territory, not demo-critic's"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "demo-studio",
+  "version": "0.0.1",
+  "description": "Produce technical demos that are substantive and observable rather than polished reels — structure the narrative arc, choreograph a live agentic segment with visible traces and a planned recoverable failure, back every claim with verifiable evidence, and gate the whole thing deterministically.",
+  "author": {
+    "name": "smithdak"
+  },
+  "license": "MIT",
+  "keywords": [
+    "objectcore",
+    "generator",
+    "demo",
+    "presentation",
+    "narrative",
+    "live-demo",
+    "evidence"
+  ],
+  "category": "generator"
+}
