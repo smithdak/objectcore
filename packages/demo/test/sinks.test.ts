@@ -114,6 +114,59 @@ describe("SlidevSink", () => {
     expect(deck).toContain("run &lt;script&gt; &amp; wait");
   });
 
+  test("declares a slide transition — a deck with none reads as a PDF", () => {
+    expect(deckOf(new SlidevSink().emit(derived()))).toContain("transition: slide-left");
+    expect(deckOf(new SlidevSink({ transition: "fade" }).emit(derived())))
+      .toContain("transition: fade");
+  });
+
+  test("reveals multi-item lists one click at a time", () => {
+    const deck = deckOf(new SlidevSink().emit(derived()));
+    expect(deck).toContain("<v-clicks>");
+    expect(deckOf(new SlidevSink({ progressiveReveal: false }).emit(derived())))
+      .not.toContain("<v-clicks>");
+  });
+
+  test("draws a canvas beat as an assembling SVG with staggered timings", () => {
+    const spec = validDemo();
+    spec.beats.find((b) => b.id === "what-changes")!.visual = {
+      kind: "canvas",
+      nodes: [
+        { id: "a", label: "Source", group: "in" },
+        { id: "b", label: "Seam", group: "mid" },
+      ],
+      edges: [{ from: "a", to: "b" }],
+    };
+    const deck = deckOf(new SlidevSink().emit(deriveDemo(spec)));
+
+    expect(deck).toContain('<svg class="demo-canvas"');
+    expect(deck).toContain(">Source<");
+    expect(deck).toContain('class="demo-edge"');
+    // nodes stagger, then the edges draw after the last node
+    expect(deck).toContain("animation-delay:0ms");
+    expect(deck).toContain("animation-delay:140ms");
+    expect(deck).toContain("animation-delay:280ms");
+  });
+
+  test("never draws an edge the gate reported as dangling", () => {
+    const spec = validDemo();
+    spec.beats.find((b) => b.id === "what-changes")!.visual = {
+      kind: "canvas",
+      nodes: [{ id: "a", label: "Source" }],
+      edges: [{ from: "a", to: "ghost" }],
+    };
+    const deck = deckOf(new SlidevSink().emit(deriveDemo(spec)));
+    expect(deck).toContain(">Source<");
+    expect(deck).not.toContain('class="demo-edge"');
+  });
+
+  test("the stylesheet honours prefers-reduced-motion", () => {
+    const css = new SlidevSink().emit(derived())
+      .find((f) => f.path === "style.css")!.content;
+    expect(css).toContain("@keyframes demoRise");
+    expect(css).toContain("prefers-reduced-motion: reduce");
+  });
+
   test("carries the takeaway", () => {
     expect(deckOf(new SlidevSink().emit(derived()))).toContain(validDemo().takeaway);
   });

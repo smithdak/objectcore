@@ -100,7 +100,55 @@
             "catalog"
           ]
         }
-      ]
+      ],
+      "visual": {
+        "kind": "canvas",
+        "nodes": [
+          {
+            "id": "plugins",
+            "label": "plugins/",
+            "group": "source"
+          },
+          {
+            "id": "derive",
+            "label": "deriveCatalog",
+            "group": "seam"
+          },
+          {
+            "id": "gate",
+            "label": "the gate",
+            "group": "seam"
+          },
+          {
+            "id": "catalog",
+            "label": "marketplace.json",
+            "group": "artifact"
+          },
+          {
+            "id": "registry",
+            "label": "live registry",
+            "group": "artifact"
+          }
+        ],
+        "edges": [
+          {
+            "from": "plugins",
+            "to": "derive"
+          },
+          {
+            "from": "derive",
+            "to": "catalog"
+          },
+          {
+            "from": "gate",
+            "to": "catalog"
+          },
+          {
+            "from": "catalog",
+            "to": "registry"
+          }
+        ]
+      }
     },
     {
       "id": "forge-live",

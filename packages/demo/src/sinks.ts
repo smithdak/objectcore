@@ -24,6 +24,7 @@ import type { DemoOutput, DerivedBeat } from "./derive";
 import type { BeatKind } from "./spec";
 import { evidenceCoverage, proveEvidence } from "./evidence";
 import { buildStoryboard } from "./storyboard";
+import type { StoryboardCanvas } from "./storyboard";
 import type { StoryboardOptions } from "./storyboard";
 
 export interface SinkFile {
@@ -67,6 +68,11 @@ function yamlString(v: string): string {
 export interface SlidevSinkOptions {
   /** Slidev theme name for the deck frontmatter. Defaults to `none` -- see below. */
   theme?: string;
+  /** Slide transition (Slidev's built-in set: slide-left, fade, view-transition, ...). */
+  transition?: string;
+  /** Reveal claim bullets one click at a time. Default true — a wall of bullets
+   *  appearing at once is what makes a technical deck feel dead. */
+  progressiveReveal?: boolean;
   /** Where to write the deck's stylesheet. Slidev injects a `style.css` sitting next
    *  to the deck; the default is load-bearing for the same reason as `playerPath`. */
   stylePath?: string;
@@ -90,6 +96,9 @@ export interface SlidevSinkOptions {
  *  styling below is ours rather than a theme's, which is the point: a generated deck
  *  should look composed without asking the author to install or configure anything. */
 const DEFAULT_SLIDEV_THEME = "none";
+
+/** Slide-to-slide motion. Slidev has this built in and costs nothing to use. */
+const DEFAULT_TRANSITION = "slide-left";
 
 /** Slidev layout per beat kind. The arc IS the design: an opener and a STAR moment
  *  are single statements that should fill the screen, the live beat is a split of
@@ -217,6 +226,50 @@ const BASE_CSS = [
   "}",
   ".demo-repo { color: var(--demo-muted); font-size: 0.85rem; margin-top: 0.8rem; }",
   ".demo-watch li { max-width: 28ch; font-size: 0.95rem; margin-bottom: 0.5rem; }",
+  // -- Motion ---------------------------------------------------------------
+  // The kicker and title lead each slide in, so a transition lands on movement
+  // rather than a static block appearing.
+  "@keyframes demoRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }",
+  "@keyframes demoNodeIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }",
+  "@keyframes demoDraw { to { stroke-dashoffset: 0; } }",
+  ".slidev-layout .demo-kicker { animation: demoRise 380ms ease-out both; }",
+  ".slidev-layout h1 { animation: demoRise 460ms 60ms ease-out both; }",
+  ".slidev-layout .demo-live { animation: demoRise 520ms 140ms ease-out both; }",
+  "",
+  // The architecture canvas assembles: nodes rise in graph order, then edges draw.
+  ".demo-canvas { width: 100%; max-height: 34vh; margin: 0.2rem 0 0.5rem; }",
+  // A slide carrying a diagram has less room for prose; the claims ride under it.
+  ".slidev-layout:has(.demo-canvas) li { font-size: 0.92rem; margin-bottom: 0.4rem; max-width: 68ch; }",
+  ".slidev-layout:has(.demo-canvas) h1 { font-size: 2rem; margin-bottom: 0.8rem; }",
+  ".demo-node { animation: demoNodeIn 460ms ease-out both; }",
+  ".demo-node rect {",
+  "  fill: var(--demo-surface);",
+  "  stroke: var(--demo-border);",
+  "  stroke-width: 1;",
+  "}",
+  ".demo-node text {",
+  "  fill: var(--demo-fg);",
+  "  font-size: 15px;",
+  "  text-anchor: middle;",
+  "  font-family: inherit;",
+  "}",
+  ".demo-edge {",
+  "  fill: none;",
+  "  stroke: var(--demo-accent);",
+  "  stroke-width: 1.6;",
+  "  stroke-dasharray: 240;",
+  "  stroke-dashoffset: 240;",
+  "  animation: demoDraw 620ms ease-out both;",
+  "}",
+  "",
+  // Respect the OS setting: motion is a nicety, never a barrier.
+  "@media (prefers-reduced-motion: reduce) {",
+  "  .slidev-layout .demo-kicker,",
+  "  .slidev-layout h1,",
+  "  .slidev-layout .demo-live,",
+  "  .demo-node,",
+  "  .demo-edge { animation: none !important; stroke-dashoffset: 0 !important; }",
+  "}",
   ".demo-foot {",
   "  position: absolute;",
   "  bottom: 1.4rem; left: 3.6rem; right: 3.6rem;",
@@ -310,6 +363,54 @@ function playerComponent(output: DemoOutput): string {
   ].join("\n");
 }
 
+/** Render a canvas beat as an inline SVG that ASSEMBLES: nodes fade up in graph order,
+ *  edges draw themselves after. This is the brief's "watch the architecture assemble"
+ *  beat — and it stays a derived artifact, because the positions come from
+ *  `buildStoryboard`'s layout, never from the author. */
+function canvasSvg(canvas: StoryboardCanvas): string {
+  const PAD = 28;
+  const W = 190;
+  const H = 62;
+  const xs = canvas.nodes.map((n) => n.x);
+  const ys = canvas.nodes.map((n) => n.y);
+  const width = Math.max(...xs, 0) + W + PAD * 2;
+  const height = Math.max(...ys, 0) + H + PAD * 2;
+  const at = (id: string) => canvas.nodes.find((n) => n.id === id);
+
+  const parts: string[] = [
+    `<svg class="demo-canvas" viewBox="0 0 ${width} ${height}" role="img">`,
+  ];
+
+  canvas.edges.forEach((e, i) => {
+    const a = at(e.from);
+    const b = at(e.to);
+    if (!a || !b) return; // the gate already reported this; never draw a guess
+    const x1 = a.x + PAD + W;
+    const y1 = a.y + PAD + H / 2;
+    const x2 = b.x + PAD;
+    const y2 = b.y + PAD + H / 2;
+    const mid = (x1 + x2) / 2;
+    parts.push(
+      `<path class="demo-edge" style="animation-delay:${(canvas.nodes.length * 140 + i * 160)}ms" ` +
+        `d="M${x1} ${y1} C${mid} ${y1} ${mid} ${y2} ${x2} ${y2}" />`,
+    );
+  });
+
+  canvas.nodes.forEach((n, i) => {
+    const x = n.x + PAD;
+    const y = n.y + PAD;
+    parts.push(
+      `<g class="demo-node" style="animation-delay:${i * 140}ms">`,
+      `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8" />`,
+      `<text x="${x + W / 2}" y="${y + H / 2 + 5}">${escapeHtml(n.label)}</text>`,
+      "</g>",
+    );
+  });
+
+  parts.push("</svg>");
+  return parts.join("\n");
+}
+
 /** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline -- the
  *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
 export class SlidevSink implements DemoSink {
@@ -324,6 +425,9 @@ export class SlidevSink implements DemoSink {
       `theme: ${theme}`,
       `title: ${yamlString(spec.title)}`,
       `info: ${yamlString(spec.brief)}`,
+      // Slidev ships slide transitions; a deck with none reads as a PDF. `slide-left`
+      // matches the left-to-right reading of the arc.
+      `transition: ${this.opts.transition ?? DEFAULT_TRANSITION}`,
       "layout: cover",
       "---",
       "",
@@ -384,6 +488,12 @@ export class SlidevSink implements DemoSink {
 
     const isLive = beat.kind === "live-demo" && beat.live;
 
+    // A canvas beat draws its architecture, assembling on screen.
+    if (beat.visual?.kind === "canvas") {
+      const canvas = buildStoryboard(output).canvases.find((c) => c.beatId === beat.id);
+      if (canvas) lines.push(canvasSvg(canvas), "");
+    }
+
     if (isLive) {
       // LEFT column: what is actually being run.
       lines.push(
@@ -403,6 +513,12 @@ export class SlidevSink implements DemoSink {
       return `- ${claim.text}${refs}`;
     });
 
+    // `<v-clicks>` reveals a list one item per click — Slidev's own directive, so the
+    // motion is real rather than a CSS trick, and the presenter paces the argument.
+    const reveal = this.opts.progressiveReveal !== false;
+    const clicked = (items: string[]): string[] =>
+      reveal && items.length > 1 ? ["<v-clicks>", "", ...items, "", "</v-clicks>"] : items;
+
     if (isLive) {
       // RIGHT column: what stays visible while it runs, then the claims. `::right::`
       // sends everything after it to the right column, so ordering is the layout.
@@ -414,11 +530,13 @@ export class SlidevSink implements DemoSink {
         "",
       );
       // No wrapper div: a markdown list inside a raw HTML block is not parsed.
-      for (const surface of beat.live!.traceSurfaces ?? []) lines.push(`- ${surface}`);
-      lines.push("");
-      if (claimLines.length) lines.push('<div class="demo-claims">', "", ...claimLines, "", "</div>", "");
+      const traces = (beat.live!.traceSurfaces ?? []).map((t) => `- ${t}`);
+      lines.push(...clicked(traces), "");
+      if (claimLines.length) {
+        lines.push('<div class="demo-claims">', "", ...clicked(claimLines), "", "</div>", "");
+      }
     } else if (claimLines.length) {
-      lines.push(...claimLines, "");
+      lines.push(...clicked(claimLines), "");
     }
 
     // A slide carrying nothing but a title is an outline, not a deck. When a beat
