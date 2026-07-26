@@ -62,11 +62,16 @@ function yamlString(v: string): string {
   return JSON.stringify(v);
 }
 
-// ── Slidev ───────────────────────────────────────────────────────────────────
+// -- Slidev -------------------------------------------------------------------
 
 export interface SlidevSinkOptions {
-  /** Slidev theme name for the deck frontmatter. Defaults to `none` — see below. */
+  /** Slidev theme name for the deck frontmatter. Defaults to `none` -- see below. */
   theme?: string;
+  /** A stylesheet inlined into the deck's `<style>` block. The CLI passes the design
+   *  system's own CSS custom properties here when the spec names a `designSystem`,
+   *  which is how a deck inherits the brand WITHOUT this package depending on the
+   *  design engine -- the port stays a plain string. */
+  css?: string;
   path?: string;
 }
 
@@ -74,11 +79,135 @@ export interface SlidevSinkOptions {
  *  the CLI offers to install interactively. A GENERATED deck is usually opened
  *  non-interactively (CI, a script, an agent), where that prompt cannot be answered
  *  and Slidev exits with "the theme was not found and cannot prompt for installation".
- *  `none` is built in, so the emitted deck runs with no install step at all. Callers
- *  who want a themed deck pass `theme` explicitly and take on installing it. */
+ *  `none` is built in, so the emitted deck runs with no install step at all -- and the
+ *  styling below is ours rather than a theme's, which is the point: a generated deck
+ *  should look composed without asking the author to install or configure anything. */
 const DEFAULT_SLIDEV_THEME = "none";
 
-/** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline — the
+/** Slidev layout per beat kind. The arc IS the design: an opener and a STAR moment
+ *  are single statements that should fill the screen, the live beat is a split of
+ *  "what is running" against "what you can see", and the argument beats are ordinary
+ *  content slides. Layout is derived from `kind`, never authored. */
+const LAYOUT: Record<BeatKind, string> = {
+  "opener": "cover",
+  "what-is": "default",
+  "what-could-be": "default",
+  "live-demo": "two-cols",
+  "star": "statement",
+  "tell-show-tell": "default",
+  "close": "center",
+};
+
+/** Badge text for each beat's place in the arc. */
+const KIND_KICKER: Record<BeatKind, string> = {
+  "opener": "Opening",
+  "what-is": "What is",
+  "what-could-be": "What could be",
+  "live-demo": "Live",
+  "star": "The moment",
+  "tell-show-tell": "Show",
+  "close": "Close",
+};
+
+/** The deck's own stylesheet, written against the SEMANTIC ROLE names the design
+ *  engine emits (`--bg-base`, `--text-primary`, `--accent-default`, ...) with
+ *  fallbacks -- so a deck looks composed with no design system attached, and inherits
+ *  the brand exactly when one is passed via `css`. */
+const BASE_CSS = [
+  ":root {",
+  "  --demo-bg: var(--bg-base, #0f1115);",
+  "  --demo-surface: var(--bg-surface, #171a23);",
+  "  --demo-fg: var(--text-primary, #e9ebf1);",
+  "  --demo-muted: var(--text-secondary, #99a2b4);",
+  "  --demo-accent: var(--accent-default, #7c8cff);",
+  "  --demo-border: var(--border-subtle, #272c39);",
+  "}",
+  ".slidev-layout {",
+  "  background: var(--demo-bg);",
+  "  color: var(--demo-fg);",
+  "  padding: 3.4rem 4rem;",
+  "}",
+  ".slidev-layout h1 {",
+  "  color: var(--demo-fg);",
+  "  font-size: 2.9rem;",
+  "  line-height: 1.1;",
+  "  font-weight: 650;",
+  "  letter-spacing: -0.022em;",
+  "  max-width: 20ch;",
+  "  margin-bottom: 1.5rem;",
+  "}",
+  ".slidev-layout.slidev-layout-cover h1, .slidev-layout.slidev-layout-statement h1 {",
+  "  font-size: 3.9rem;",
+  "  max-width: 16ch;",
+  "  letter-spacing: -0.03em;",
+  "}",
+  ".slidev-layout p, .slidev-layout li { font-size: 1.12rem; line-height: 1.62; }",
+  ".slidev-layout ul { list-style: none; padding: 0; }",
+  ".slidev-layout li {",
+  "  position: relative;",
+  "  padding-left: 1.4rem;",
+  "  margin-bottom: 0.85rem;",
+  "  color: var(--demo-fg);",
+  "  max-width: 46ch;",
+  "}",
+  ".slidev-layout li::before {",
+  '  content: "";',
+  "  position: absolute;",
+  "  left: 0; top: 0.7em;",
+  "  width: 0.5rem; height: 0.5rem;",
+  "  border-radius: 2px;",
+  "  background: var(--demo-accent);",
+  "}",
+  ".demo-kicker {",
+  "  display: inline-block;",
+  "  font-size: 0.7rem;",
+  "  letter-spacing: 0.15em;",
+  "  text-transform: uppercase;",
+  "  color: var(--demo-accent);",
+  "  border: 1px solid var(--demo-border);",
+  "  border-radius: 999px;",
+  "  padding: 0.2rem 0.7rem;",
+  "  margin-bottom: 1.3rem;",
+  "}",
+  ".demo-lede { font-size: 1.35rem; line-height: 1.5; color: var(--demo-muted); max-width: 42ch; }",
+  ".demo-ref {",
+  "  font-size: 0.7rem;",
+  "  color: var(--demo-accent);",
+  "  background: var(--demo-surface);",
+  "  border: 1px solid var(--demo-border);",
+  "  border-radius: 4px;",
+  "  padding: 0.06rem 0.4rem;",
+  "  margin-left: 0.4rem;",
+  "  white-space: nowrap;",
+  "}",
+  ".demo-live {",
+  "  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+  "  font-size: 0.88rem;",
+  "  line-height: 1.55;",
+  "  background: var(--demo-surface);",
+  "  border: 1px solid var(--demo-border);",
+  "  border-left: 3px solid var(--demo-accent);",
+  "  border-radius: 6px;",
+  "  padding: 0.9rem 1.05rem;",
+  "  color: var(--demo-fg);",
+  "}",
+  ".demo-repo { color: var(--demo-muted); font-size: 0.85rem; margin-top: 0.8rem; }",
+  ".demo-watch li { max-width: 28ch; font-size: 0.95rem; margin-bottom: 0.5rem; }",
+  ".demo-foot {",
+  "  position: absolute;",
+  "  bottom: 1.5rem; left: 4rem; right: 4rem;",
+  "  display: flex; justify-content: space-between;",
+  "  font-size: 0.68rem;",
+  "  color: var(--demo-muted);",
+  "  border-top: 1px solid var(--demo-border);",
+  "  padding-top: 0.65rem;",
+  "}",
+].join("\n");
+
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline -- the
  *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
 export class SlidevSink implements DemoSink {
   constructor(private readonly opts: SlidevSinkOptions = {}) {}
@@ -92,21 +221,30 @@ export class SlidevSink implements DemoSink {
       `theme: ${theme}`,
       `title: ${yamlString(spec.title)}`,
       `info: ${yamlString(spec.brief)}`,
+      "layout: cover",
       "---",
       "",
       `# ${spec.title}`,
       "",
-      spec.brief,
+      `<p class="demo-lede">${escapeHtml(spec.brief)}</p>`,
       "",
       `<!-- Derived by @objectcore/demo from ${spec.name}. Do not hand-edit: re-run \`bun run demo:build\`. -->`,
+      "",
+      "<style>",
+      this.opts.css ? `${this.opts.css}\n\n${BASE_CSS}` : BASE_CSS,
+      "</style>",
     ].join("\n");
 
-    const slides = output.beats.map((b) => this.slide(b));
+    const slides = output.beats.map((b) => this.slide(b, output));
 
     const closing = [
+      "---",
+      "layout: center",
+      "---",
+      "",
       "# Take this with you",
       "",
-      spec.takeaway,
+      `<p class="demo-lede">${escapeHtml(spec.takeaway)}</p>`,
       "",
       "<!--",
       "The transferable takeaway is a required field of the spec, not a courtesy slide:",
@@ -114,27 +252,64 @@ export class SlidevSink implements DemoSink {
       "-->",
     ].join("\n");
 
-    return [{ path: this.opts.path ?? "deck.md", content: [head, ...slides, closing].join(SLIDE_BREAK) + "\n" }];
+    return [{
+      path: this.opts.path ?? "deck.md",
+      content: [head, ...slides, closing].join(SLIDE_BREAK) + "\n",
+    }];
   }
 
-  private slide(b: DerivedBeat): string {
+  private slide(b: DerivedBeat, output: DemoOutput): string {
     const { beat } = b;
-    const lines: string[] = [`# ${beat.title}`, ""];
+    const lines: string[] = [
+      "---",
+      `layout: ${LAYOUT[beat.kind]}`,
+      "---",
+      "",
+      `<div class="demo-kicker">${KIND_KICKER[beat.kind]}</div>`,
+      "",
+      `# ${beat.title}`,
+      "",
+    ];
 
     if (beat.kind === "live-demo" && beat.live) {
-      lines.push(`> Live — \`${beat.live.repo}\``, "", beat.live.task, "");
-      if (beat.live.traceSurfaces?.length) {
-        lines.push("What you can see the whole time:", "");
-        for (const surface of beat.live.traceSurfaces) lines.push(`- ${surface}`);
-        lines.push("");
-      }
+      // Left column: what is actually running. Right: what stays visible while it does.
+      lines.push(
+        `<div class="demo-live">$ ${escapeHtml(beat.live.task)}</div>`,
+        "",
+        `<div class="demo-repo">${escapeHtml(beat.live.repo)}</div>`,
+        "",
+        "::right::",
+        "",
+        '<div class="demo-kicker">On screen throughout</div>',
+        "",
+        '<div class="demo-watch">',
+        "",
+      );
+      for (const surface of beat.live.traceSurfaces ?? []) lines.push(`- ${surface}`);
+      lines.push("", "</div>", "");
     }
 
+    // Claim text stays raw: a bullet is markdown, so an author can write `code` or
+    // emphasis in a claim. Everything landing inside an HTML element is escaped.
     for (const claim of b.claims) {
-      const refs = claim.evidence.map((e) => `\`${e.id}\``).join(", ");
-      lines.push(`- ${claim.text}${refs ? ` <sup>${refs}</sup>` : ""}`);
+      const refs = claim.evidence
+        .map((e) => `<span class="demo-ref">${escapeHtml(e.id)}</span>`)
+        .join("");
+      lines.push(`- ${claim.text}${refs}`);
     }
     if (b.claims.length) lines.push("");
+
+    // A slide carrying nothing but a title is an outline, not a deck. When a beat
+    // makes no claims, show whose question it answers -- the spec already knows.
+    if (!b.claims.length && beat.kind !== "live-demo" && b.persona) {
+      lines.push(`<p class="demo-lede">${escapeHtml(b.persona.cares)}</p>`, "");
+    }
+
+    lines.push(
+      `<div class="demo-foot"><span>${escapeHtml(output.spec.title)}</span>` +
+        `<span>${clock(b.startSec)}</span></div>`,
+      "",
+    );
 
     // Speaker notes: narration plus the beat's place in the arc and on the clock.
     lines.push(
@@ -225,6 +400,8 @@ export class RunbookSink implements DemoSink {
 
     if (beat.narration) lines.push(beat.narration, "");
 
+    // Claim text stays raw: a bullet is markdown, so an author can write `code` or
+    // emphasis in a claim. Everything landing inside an HTML element is escaped.
     for (const claim of b.claims) {
       const refs = claim.evidence.map((e) => `${e.id} → ${e.ref}`).join("; ");
       lines.push(`- **Claim:** ${claim.text}`, `  - **Backed by:** ${refs || "(unresolved)"}`);

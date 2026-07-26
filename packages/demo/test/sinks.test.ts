@@ -43,7 +43,54 @@ describe("SlidevSink", () => {
   test("renders every claim with its evidence ref (never a bare assertion)", () => {
     const deck = new SlidevSink().emit(derived())[0]!.content;
     expect(deck).toContain("Rework and review latency dominate our measured cycle time.");
-    expect(deck).toContain("<sup>`cycle-time`</sup>");
+    expect(deck).toContain('<span class="demo-ref">cycle-time</span>');
+  });
+
+  // The arc IS the design: layout is derived from beat kind, never authored.
+  test("derives a Slidev layout per beat kind", () => {
+    const deck = new SlidevSink().emit(derived())[0]!.content;
+    expect(deck).toContain("layout: cover");      // opener
+    expect(deck).toContain("layout: two-cols");   // the live beat splits task vs traces
+    expect(deck).toContain("layout: statement");  // the STAR moment
+    expect(deck).toContain("layout: center");     // the close
+  });
+
+  test("ships its own stylesheet so the deck needs no theme install", () => {
+    const deck = new SlidevSink().emit(derived())[0]!.content;
+    expect(deck).toContain("<style>");
+    expect(deck).toContain(".slidev-layout h1");
+    // written against the design engine's semantic roles, with fallbacks
+    expect(deck).toContain("var(--bg-base,");
+    expect(deck).toContain("var(--accent-default,");
+  });
+
+  test("injected design-system CSS is inlined ahead of the base styles", () => {
+    const deck = new SlidevSink({ css: ":root { --accent-default: hotpink; }" })
+      .emit(derived())[0]!.content;
+    expect(deck).toContain("--accent-default: hotpink");
+    expect(deck.indexOf("hotpink")).toBeLessThan(deck.indexOf(".slidev-layout h1"));
+  });
+
+  // A slide carrying nothing but a title is an outline, not a deck.
+  test("a claimless beat still puts its persona's question on the slide", () => {
+    const deck = new SlidevSink().emit(derived())[0]!.content;
+    expect(deck).toContain("Cycle time and defect escape rate, not model benchmarks.");
+  });
+
+  test("the live beat splits the task from what stays visible", () => {
+    const deck = new SlidevSink().emit(derived())[0]!.content;
+    expect(deck).toContain("::right::");
+    expect(deck).toContain("On screen throughout");
+    expect(deck).toContain('<div class="demo-live">$ ');
+  });
+
+  // Prose that lands inside an HTML element is escaped. Claim bullets are NOT — they
+  // are markdown by design, so an author can write `code` or emphasis in a claim.
+  test("escapes prose that lands inside an HTML element", () => {
+    const spec = validDemo();
+    spec.beats.find((b) => b.kind === "live-demo")!.live!.task = "run <script> & wait";
+    const deck = new SlidevSink().emit(deriveDemo(spec))[0]!.content;
+    expect(deck).toContain("run &lt;script&gt; &amp; wait");
   });
 
   test("carries the takeaway", () => {

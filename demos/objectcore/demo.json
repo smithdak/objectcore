@@ -196,5 +196,6 @@
       "narration": "Do not copy this repository. Pick the one convention your team keeps re-litigating in review, and turn it into a check that fails the build. Then do the next one."
     }
   ],
-  "takeaway": "The gate configuration, the eval-case format, and the reflection subagent that turns a red gate into a written lesson \u2014 all checked in at github.com/smithdak/objectcore, and runnable against a repository you already own."
+  "takeaway": "The gate configuration, the eval-case format, and the reflection subagent that turns a red gate into a written lesson \u2014 all checked in at github.com/smithdak/objectcore, and runnable against a repository you already own.",
+  "designSystem": "objectcore"
 }
