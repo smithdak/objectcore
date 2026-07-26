@@ -9,12 +9,17 @@
 //                     cue sheet, the human-in-the-loop checkpoints, the fallback,
 //                     and the deliberate recoverable failure. This artifact is the
 //                     one that makes a demo genuinely live instead of a reel.
+//   - `EvidenceSink` → `evidence.md` + `evidence-proof.json`, the claims→sources
+//                     appendix. It renders `proveEvidence`'s rows — the SAME rows
+//                     `checkEvidence` gates on — so the handout and the gate are
+//                     one evaluation (design's ProofSink discipline).
 //
 // The core stays hand-rolled + zero-dep: each adapter emits the format a downstream
 // tool consumes; we never depend on the tool itself. Pure; never throws.
 
 import type { DemoOutput, DerivedBeat } from "./derive";
 import type { BeatKind } from "./spec";
+import { evidenceCoverage, proveEvidence } from "./evidence";
 
 export interface SinkFile {
   path: string;
@@ -241,5 +246,64 @@ export class RunbookSink implements DemoSink {
     }
 
     return lines;
+  }
+}
+
+// ── Evidence appendix ────────────────────────────────────────────────────────
+
+export interface EvidenceSinkOptions {
+  /** Emit the machine-readable proof alongside the markdown. Default true. */
+  json?: boolean;
+  path?: string;
+  jsonPath?: string;
+}
+
+/** Emits the claims→sources appendix from `proveEvidence`'s rows. The audience's
+ *  handout and the gate's verdict are literally the same evaluation — so a demo
+ *  cannot ship an appendix that flatters a claim the gate rejected. */
+export class EvidenceSink implements DemoSink {
+  constructor(private readonly opts: EvidenceSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const entries = proveEvidence(output);
+    const coverage = evidenceCoverage(output);
+
+    const lines: string[] = [
+      `# Evidence — ${output.spec.title}`,
+      "",
+      `_Derived by \`@objectcore/demo\`. Every claim made on stage, and what backs it._`,
+      "",
+      `**Backed:** ${entries.filter((e) => e.pass).length}/${entries.length} claims ` +
+        `(${(coverage * 100).toFixed(0)}%).`,
+      "",
+      "| Beat | Claim | Backed by | Status |",
+      "|---|---|---|---|",
+    ];
+
+    for (const e of entries) {
+      const backing = e.evidence.map((i) => `\`${i.id}\` (${i.kind}) — ${i.ref}`).join("<br>")
+        || (e.missing.length ? `unresolved: ${e.missing.join(", ")}` : "—");
+      lines.push(`| ${e.beatTitle} | ${e.claim} | ${backing} | ${e.pass ? "backed" : "UNBACKED"} |`);
+    }
+    lines.push("");
+
+    if (output.unusedEvidence.length) {
+      lines.push("## Registered but unused", "");
+      for (const item of output.unusedEvidence) {
+        lines.push(`- \`${item.id}\` (${item.kind}) — ${item.ref}`);
+      }
+      lines.push("");
+    }
+
+    const files: SinkFile[] = [{ path: this.opts.path ?? "evidence.md", content: lines.join("\n") }];
+
+    if (this.opts.json !== false) {
+      files.push({
+        path: this.opts.jsonPath ?? "evidence-proof.json",
+        content: JSON.stringify({ demo: output.spec.name, coverage, entries }, null, 2) + "\n",
+      });
+    }
+
+    return files;
   }
 }
