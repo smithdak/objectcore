@@ -1,0 +1,18 @@
+{
+  "gate": {
+    "level": "AAA",
+    "coverage": "full"
+  },
+  "seed": {
+    "preset": "inkwell",
+    "version": "2.2.0",
+    "themes": [
+      "paper",
+      "ink",
+      "study",
+      "kiln",
+      "arboretum",
+      "nocturne"
+    ]
+  }
+}

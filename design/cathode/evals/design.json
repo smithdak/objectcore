@@ -1,0 +1,30 @@
+{
+  "brief": {
+    "name": "cathode",
+    "adjectives": [
+      "loud",
+      "technical",
+      "emissive",
+      "precise",
+      "energized"
+    ],
+    "intent": "Phosphor on dark glass, one live wire of cyan — where inkwell absorbs light, cathode emits it. A color system for agentic products that ship signal, and can prove it."
+  },
+  "cases": [
+    {
+      "question": "Does this system read as loud, technical phosphor firing at dark glass?",
+      "expect": "pass",
+      "note": "emission, not absorption — built to be noticed and still be trusted"
+    },
+    {
+      "question": "Do the status hues read as indicator lamps — lit only when the machine has something to report?",
+      "expect": "pass",
+      "note": "state is a lamp: pulse, flare and klaxon report, never decorate"
+    },
+    {
+      "question": "Does this system read as quiet, warm, paper-like editorial print?",
+      "expect": "fail",
+      "note": "that is inkwell — the opposite number"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "resolutionOrder": [
+    "primitives",
+    "shared",
+    "theme"
+  ],
+  "modifiers": [
+    {
+      "name": "theme",
+      "contexts": {
+        "paper": [
+          "semantic-paper"
+        ],
+        "ink": [
+          "semantic-ink"
+        ],
+        "study": [
+          "semantic-study"
+        ],
+        "kiln": [
+          "semantic-kiln"
+        ],
+        "arboretum": [
+          "semantic-arboretum"
+        ],
+        "nocturne": [
+          "semantic-nocturne"
+        ]
+      }
+    }
+  ],
+  "themes": [
+    {
+      "name": "paper",
+      "context": {
+        "theme": "paper"
+      }
+    },
+    {
+      "name": "ink",
+      "context": {
+        "theme": "ink"
+      }
+    },
+    {
+      "name": "study",
+      "context": {
+        "theme": "study"
+      }
+    },
+    {
+      "name": "kiln",
+      "context": {
+        "theme": "kiln"
+      }
+    },
+    {
+      "name": "arboretum",
+      "context": {
+        "theme": "arboretum"
+      }
+    },
+    {
+      "name": "nocturne",
+      "context": {
+        "theme": "nocturne"
+      }
+    }
+  ]
+}

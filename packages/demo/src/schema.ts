@@ -29,7 +29,7 @@ const EVIDENCE_KIND_SET = new Set<string>(EVIDENCE_KINDS);
 
 const SPEC_KEYS = new Set([
   "name", "title", "brief", "targetDurationSec", "audience",
-  "evidence", "beats", "takeaway", "designSystem",
+  "evidence", "beats", "takeaway", "designSystem", "designTheme",
 ]);
 const PERSONA_KEYS = new Set(["id", "title", "cares"]);
 const EVIDENCE_KEYS = new Set(["id", "kind", "ref", "note"]);
@@ -42,6 +42,14 @@ const CANVAS_VISUAL_KEYS = new Set(["kind", "nodes", "edges"]);
 const CANVAS_NODE_KEYS = new Set(["id", "label", "group"]);
 const CANVAS_EDGE_KEYS = new Set(["from", "to", "label"]);
 const TRANSITIONS = new Set(["cut", "fade", "wipe", "slide"]);
+const STATS_KEYS = new Set(["kind", "items", "note"]);
+const CHAIN_KEYS = new Set(["kind", "steps", "note"]);
+const TIMELINE_KEYS = new Set(["kind", "items", "note"]);
+const COLUMNS_KEYS = new Set(["kind", "columns", "note"]);
+const STAT_ITEM_KEYS = new Set(["value", "label"]);
+const CHAIN_STEP_KEYS = new Set(["label", "detail"]);
+const TIMELINE_ITEM_KEYS = new Set(["when", "label", "detail"]);
+const COLUMN_KEYS = new Set(["heading", "points", "tag"]);
 const LIVE_KEYS = new Set([
   "repo", "task", "fallback", "checkpoints", "expectedFailure", "traceSurfaces",
 ]);
@@ -71,6 +79,12 @@ export function validateDemoSpec(input: unknown): DemoIssue[] {
   }
   if (input.designSystem !== undefined && !isNonEmptyString(input.designSystem)) {
     err("designSystem", "`designSystem` must be a non-empty string when present");
+  }
+  if (input.designTheme !== undefined && !isNonEmptyString(input.designTheme)) {
+    err("designTheme", "`designTheme` must be a non-empty string when present");
+  }
+  if (input.designTheme !== undefined && input.designSystem === undefined) {
+    err("designTheme", "`designTheme` names a theme OF a system — set `designSystem` too");
   }
 
   if (typeof input.targetDurationSec !== "number" || !Number.isFinite(input.targetDurationSec)
@@ -316,6 +330,64 @@ function checkLive(v: unknown, path: string, issues: DemoIssue[]): void {
   }
 }
 
+/** Shared shape for the four list-driven archetypes: a non-empty array of objects,
+ *  each with its own required string fields. Keeping this generic means adding a
+ *  fifth archetype is a table entry, not another 40 lines of validation. */
+function checkItemList(
+  v: unknown,
+  path: string,
+  opts: {
+    listKey: string;
+    itemKeys: Set<string>;
+    required: string[];
+    optionalStrings?: string[];
+    optionalStringArrays?: string[];
+    min?: number;
+  },
+  issues: DemoIssue[],
+): void {
+  const list = (v as Record<string, unknown>)[opts.listKey];
+  const min = opts.min ?? 2;
+  if (!Array.isArray(list) || list.length < min) {
+    issues.push({
+      level: "error",
+      path: `${path}.${opts.listKey}`,
+      message: `\`${opts.listKey}\` must be an array of at least ${min}`,
+    });
+    return;
+  }
+  list.forEach((item, i) => {
+    const ip = `${path}.${opts.listKey}[${i}]`;
+    if (!isObj(item)) {
+      issues.push({ level: "error", path: ip, message: "must be an object" });
+      return;
+    }
+    rejectUnknown(item, opts.itemKeys, ip, issues);
+    for (const key of opts.required) {
+      if (!isNonEmptyString(item[key])) {
+        issues.push({ level: "error", path: `${ip}.${key}`, message: `\`${key}\` must be a non-empty string` });
+      }
+    }
+    for (const key of opts.optionalStrings ?? []) {
+      if (item[key] !== undefined && !isNonEmptyString(item[key])) {
+        issues.push({ level: "error", path: `${ip}.${key}`, message: `\`${key}\` must be a non-empty string when present` });
+      }
+    }
+    for (const key of opts.optionalStringArrays ?? []) {
+      const arr = item[key];
+      if (!Array.isArray(arr) || arr.length === 0 || !arr.every(isNonEmptyString)) {
+        issues.push({ level: "error", path: `${ip}.${key}`, message: `\`${key}\` must be a non-empty array of strings` });
+      }
+    }
+  });
+}
+
+function checkNote(v: Record<string, unknown>, path: string, issues: DemoIssue[]): void {
+  if (v.note !== undefined && !isNonEmptyString(v.note)) {
+    issues.push({ level: "error", path: `${path}.note`, message: "`note` must be a non-empty string when present" });
+  }
+}
+
 function checkVisual(v: unknown, path: string, issues: DemoIssue[]): void {
   if (!isObj(v)) {
     issues.push({ level: "error", path, message: "`visual` must be an object" });
@@ -388,9 +460,44 @@ function checkVisual(v: unknown, path: string, issues: DemoIssue[]): void {
     return;
   }
 
+  if (v.kind === "stats") {
+    rejectUnknown(v, STATS_KEYS, path, issues);
+    checkNote(v, path, issues);
+    checkItemList(v, path, { listKey: "items", itemKeys: STAT_ITEM_KEYS, required: ["value", "label"] }, issues);
+    return;
+  }
+
+  if (v.kind === "chain") {
+    rejectUnknown(v, CHAIN_KEYS, path, issues);
+    checkNote(v, path, issues);
+    checkItemList(v, path, {
+      listKey: "steps", itemKeys: CHAIN_STEP_KEYS, required: ["label"], optionalStrings: ["detail"],
+    }, issues);
+    return;
+  }
+
+  if (v.kind === "timeline") {
+    rejectUnknown(v, TIMELINE_KEYS, path, issues);
+    checkNote(v, path, issues);
+    checkItemList(v, path, {
+      listKey: "items", itemKeys: TIMELINE_ITEM_KEYS, required: ["when", "label"], optionalStrings: ["detail"],
+    }, issues);
+    return;
+  }
+
+  if (v.kind === "columns") {
+    rejectUnknown(v, COLUMNS_KEYS, path, issues);
+    checkNote(v, path, issues);
+    checkItemList(v, path, {
+      listKey: "columns", itemKeys: COLUMN_KEYS, required: ["heading"],
+      optionalStrings: ["tag"], optionalStringArrays: ["points"],
+    }, issues);
+    return;
+  }
+
   issues.push({
     level: "error",
     path: `${path}.kind`,
-    message: '`visual.kind` must be "scene" or "canvas"',
+    message: '`visual.kind` must be one of: scene, canvas, stats, chain, timeline, columns',
   });
 }

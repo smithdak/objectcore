@@ -100,7 +100,55 @@
             "catalog"
           ]
         }
-      ]
+      ],
+      "visual": {
+        "kind": "canvas",
+        "nodes": [
+          {
+            "id": "plugins",
+            "label": "plugins/",
+            "group": "source"
+          },
+          {
+            "id": "derive",
+            "label": "deriveCatalog",
+            "group": "seam"
+          },
+          {
+            "id": "gate",
+            "label": "the gate",
+            "group": "seam"
+          },
+          {
+            "id": "catalog",
+            "label": "marketplace.json",
+            "group": "artifact"
+          },
+          {
+            "id": "registry",
+            "label": "live registry",
+            "group": "artifact"
+          }
+        ],
+        "edges": [
+          {
+            "from": "plugins",
+            "to": "derive"
+          },
+          {
+            "from": "derive",
+            "to": "catalog"
+          },
+          {
+            "from": "gate",
+            "to": "catalog"
+          },
+          {
+            "from": "catalog",
+            "to": "registry"
+          }
+        ]
+      }
     },
     {
       "id": "forge-live",
@@ -196,5 +244,6 @@
       "narration": "Do not copy this repository. Pick the one convention your team keeps re-litigating in review, and turn it into a check that fails the build. Then do the next one."
     }
   ],
-  "takeaway": "The gate configuration, the eval-case format, and the reflection subagent that turns a red gate into a written lesson \u2014 all checked in at github.com/smithdak/objectcore, and runnable against a repository you already own."
+  "takeaway": "The gate configuration, the eval-case format, and the reflection subagent that turns a red gate into a written lesson \u2014 all checked in at github.com/smithdak/objectcore, and runnable against a repository you already own.",
+  "designSystem": "objectcore"
 }

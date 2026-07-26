@@ -1,0 +1,21 @@
+{
+  "gate": {
+    "level": "AAA",
+    "coverage": "full"
+  },
+  "seed": {
+    "preset": "cathode",
+    "version": "1.2.1",
+    "themes": [
+      "glass",
+      "daylight",
+      "terminal",
+      "blueprint",
+      "ledger",
+      "manila",
+      "litmus",
+      "sonar",
+      "redline"
+    ]
+  }
+}

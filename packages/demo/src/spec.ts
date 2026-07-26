@@ -118,13 +118,53 @@ export interface CanvasEdge {
   label?: string;
 }
 
+/** One figure in a stat row: a number the audience should remember, and what it
+ *  counts. `note` is the fine print under the row. */
+export interface StatItem {
+  value: string;
+  label: string;
+}
+
+/** One step in a process chain (`a → b → c`). */
+export interface ChainStep {
+  label: string;
+  /** The question or job this step answers, shown beneath it. */
+  detail?: string;
+}
+
+/** One dated milestone on a timeline. */
+export interface TimelineItem {
+  /** Short marker: "DEC", "BY APRIL", "Q3". */
+  when: string;
+  label: string;
+  detail?: string;
+}
+
+/** One column in a comparison. */
+export interface ColumnItem {
+  heading: string;
+  /** Lines under the heading. */
+  points: string[];
+  /** A short tag pinned to the foot of the column ("EVIDENCE REQUIRED"). */
+  tag?: string;
+}
+
 /** The optional VISUAL treatment of a beat. Two forms, discriminated:
  *
- *   - `scene`  — a pre-rendered motion-graphics scene (a remocn/Remotion component
- *                name plus JSON props), for the cinematic frame: opener, transitions,
- *                B-roll, the closing card.
- *   - `canvas` — an architecture diagram that assembles on screen (nodes + edges);
- *                positions are DERIVED, never authored, so the layout is deterministic.
+ *   - `scene`    — a pre-rendered motion-graphics scene (a remocn/Remotion component
+ *                  name plus JSON props), for the cinematic frame: opener, transitions,
+ *                  B-roll, the closing card.
+ *   - `canvas`   — an architecture diagram that assembles on screen (nodes + edges);
+ *                  positions are DERIVED, never authored, so the layout is deterministic.
+ *   - `stats`    — a row of figures the room should remember.
+ *   - `chain`    — a process read left to right, `a → b → c`.
+ *   - `timeline` — dated milestones, for "how it got this way".
+ *   - `columns`  — two or three titled columns, for a comparison or a division of
+ *                  responsibility.
+ *
+ * The last four exist because a deck that can only do bullets forces every idea into
+ * the same shape. Each one still renders from DERIVED data with motion supplied by the
+ * sink, so an author writes the content and never the layout.
  *
  * A `live-demo` beat may NOT carry a visual, and the schema rejects it. That is the
  * Devin lesson encoded as a type constraint rather than a warning in a doc: rendering
@@ -144,7 +184,11 @@ export type BeatVisual =
       kind: "canvas";
       nodes: CanvasNode[];
       edges: CanvasEdge[];
-    };
+    }
+  | { kind: "stats"; items: StatItem[]; note?: string }
+  | { kind: "chain"; steps: ChainStep[]; note?: string }
+  | { kind: "timeline"; items: TimelineItem[]; note?: string }
+  | { kind: "columns"; columns: ColumnItem[]; note?: string };
 
 /** One beat of the demo. */
 export interface Beat {
@@ -186,4 +230,11 @@ export interface DemoSpec {
   takeaway: string;
   /** Optional `design/<name>` system to style the deck with (plan 012/014 systems). */
   designSystem?: string;
+  /** Which THEME of that system to present in — `paper`, `nocturne`, `terminal`, ...
+   *  A seeded preset ships several (inkwell has six, cathode nine), and a deck is
+   *  given in one of them, not in "whichever the CSS happens to declare first". When
+   *  set, that palette is pinned for the whole deck: the viewer's light/dark toggle
+   *  does not override a palette the author chose deliberately. Absent ⇒ the system's
+   *  own default, and the toggle behaves normally. */
+  designTheme?: string;
 }

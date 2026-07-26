@@ -34,6 +34,8 @@ bun run demo:seed <preset> [--name <s>] [--list] [--force]  # plan 016: instanti
 bun run demo:scaffold <brief.json> [--force]  # plan 016: expand a brief into a gate-passing demo skeleton (transparent by construction)
 bun run demo:check               # plan 016: gate every demos/ demo — structure, live safety, evidence, de-slop, budget, video balance (part of check)
 bun run demo:build [<name>]      # plan 016: derive the demo views (Slidev deck, operator runbook, evidence appendix + proof, Remotion storyboard, canvases)
+bun run demo:verify [<name>]     # plan 016: the RENDERED check — loads each built deck in a real browser and asserts overflow/dead-CSS-rules/empty-slides (NOT part of check — needs a browser; skips cleanly without Playwright)
+bun run demo:render <demo> [--composition Opener|Frame|BRoll|all] [--studio]  # plan 016: render the video track locally via Remotion (packages/demo-video; needs `cd packages/demo-video && bun install`)
 bun run demo:mcp                 # plan 016: serve the demo engine over MCP/stdio (packages/demo-mcp) — demo://list + demo://storyboard/{name} + demo_check/demo_storyboard/demo_render
 bun run release:status           # Stage 2: preview what the pending changesets would release
 bun run release:version          # Stage 2: consume changesets -> bump plugin.json + changelogs + re-derive
@@ -359,6 +361,33 @@ and tldraw consume and depend on neither — which keeps their licences on the o
 side of the line. `@objectcore/demo-mcp` is the access seam (the `knowledge-mcp`
 precedent: the only demo-side `@modelcontextprotocol/sdk` dependent), dogfooded via the
 repo-root `.mcp.json`; its `demo_render` is sink-gated and refuses a red demo.
+`packages/demo-video` is the **video track**: a Remotion project (the only Remotion
+dependent) whose three compositions are driven entirely by `storyboard.json` —
+**Opener** (a ~15s cinematic open), **Frame** (opener + assembling architecture +
+closing card, wiped together), and **BRoll** (the live beat's REQUIRED fallback, made
+renderable: the task types itself, the declared trace surfaces list, the planned
+failure lands and recovers). Scenes are pure functions of `useCurrentFrame()`, and
+`determinism.test.ts` lints the component sources for the same clock/RNG tokens the
+storyboard gate lints — the rule holds on both sides of the seam. Remotion is free for
+individuals and companies of up to three people; the repo ships no licence key and
+`demo:render` runs the operator's own local install.
+**`demo:verify` is the rendered check** — the one gate that does not reason about the
+spec. `demo:check` proves a claim resolves, `design:check` proves contrast in the token
+math, `tsc` proves the types line up; none of them render anything, and a generated
+visual artifact fails in ways types and unit tests cannot see. It serves each built deck
+with a pinned Slidev, loads Slidev's `/export` route (the only one that puts every slide
+in the DOM), and asserts three things in a real browser: nothing overflows its slide
+frame, no slide renders blank, and no `.demo-*` rule is inert. Dead rules are reconciled
+across the WHOLE corpus, because the stylesheet is shared — a class one deck does not use
+is not dead, a class NO deck uses is. Outside `bun run check` for the same reason as
+`check:versions` and `kb:verify`: it needs something CI cannot assume — here a browser.
+**Palette variants** are design systems, not a parallel mechanism: a demo names a
+`designSystem` and optionally one `designTheme` of it (`inkwell/paper` for warm
+editorial, `cathode/terminal` for green-on-glass, ...). `demo-build.ts` resolves the
+chosen theme's own token JSON into `:root` custom properties — `tokens.css` puts every
+non-default theme behind `[data-theme="x"]`, a selector no Slidev deck sets, so a deck
+asking for `nocturne` would silently present in `paper`. A pinned theme also wins under
+`html.dark`: a palette the author chose should not flip with the viewer's toggle.
 `plugins/demo-studio` is the runbook: `/demo` (quick-start vs full authoring fork), three
 craft skills, and three agents (`demo-critic`, `live-demo-choreographer`,
 `evidence-hunter`) plus self-gating `SubagentStop`/`Stop` hooks. Dogfooded →

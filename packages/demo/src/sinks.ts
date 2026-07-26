@@ -24,6 +24,7 @@ import type { DemoOutput, DerivedBeat } from "./derive";
 import type { BeatKind } from "./spec";
 import { evidenceCoverage, proveEvidence } from "./evidence";
 import { buildStoryboard } from "./storyboard";
+import type { StoryboardCanvas } from "./storyboard";
 import type { StoryboardOptions } from "./storyboard";
 
 export interface SinkFile {
@@ -62,43 +63,600 @@ function yamlString(v: string): string {
   return JSON.stringify(v);
 }
 
-// ── Slidev ───────────────────────────────────────────────────────────────────
+// -- Slidev -------------------------------------------------------------------
 
 export interface SlidevSinkOptions {
-  /** Slidev theme name for the deck frontmatter. */
+  /** Slidev theme name for the deck frontmatter. Defaults to `none` -- see below. */
   theme?: string;
+  /** Slide transition (Slidev's built-in set: slide-left, fade, view-transition, ...). */
+  transition?: string;
+  /** Reveal claim bullets one click at a time. Default true — a wall of bullets
+   *  appearing at once is what makes a technical deck feel dead. */
+  progressiveReveal?: boolean;
+  /** Where to write the deck's stylesheet. Slidev injects a `style.css` sitting next
+   *  to the deck; the default is load-bearing for the same reason as `playerPath`. */
+  stylePath?: string;
+  /** Where to write the rehearsal player component. Slidev mounts a file named
+   *  `global-bottom.vue` sitting next to the deck on every slide, so the default is
+   *  load-bearing — rename it and the player silently stops appearing. */
+  playerPath?: string;
+  /** A stylesheet inlined into the deck's `<style>` block. The CLI passes the design
+   *  system's own CSS custom properties here when the spec names a `designSystem`,
+   *  which is how a deck inherits the brand WITHOUT this package depending on the
+   *  design engine -- the port stays a plain string. */
+  css?: string;
   path?: string;
 }
 
-/** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline — the
+/** Slidev's `default` theme is a separate npm package (`@slidev/theme-default`) that
+ *  the CLI offers to install interactively. A GENERATED deck is usually opened
+ *  non-interactively (CI, a script, an agent), where that prompt cannot be answered
+ *  and Slidev exits with "the theme was not found and cannot prompt for installation".
+ *  `none` is built in, so the emitted deck runs with no install step at all -- and the
+ *  styling below is ours rather than a theme's, which is the point: a generated deck
+ *  should look composed without asking the author to install or configure anything. */
+const DEFAULT_SLIDEV_THEME = "none";
+
+/** Slide-to-slide motion. Slidev has this built in and costs nothing to use. */
+const DEFAULT_TRANSITION = "slide-left";
+
+/** Slidev layout per beat kind. The arc IS the design: an opener and a STAR moment
+ *  are single statements that should fill the screen, the live beat is a split of
+ *  "what is running" against "what you can see", and the argument beats are ordinary
+ *  content slides. Layout is derived from `kind`, never authored. */
+const LAYOUT: Record<BeatKind, string> = {
+  "opener": "cover",
+  "what-is": "default",
+  "what-could-be": "default",
+  "live-demo": "two-cols",
+  "star": "statement",
+  "tell-show-tell": "default",
+  "close": "center",
+};
+
+/** Badge text for each beat's place in the arc. */
+const KIND_KICKER: Record<BeatKind, string> = {
+  "opener": "Opening",
+  "what-is": "What is",
+  "what-could-be": "What could be",
+  "live-demo": "Live",
+  "star": "The moment",
+  "tell-show-tell": "Show",
+  "close": "Close",
+};
+
+/** The deck's stylesheet, written against the SEMANTIC ROLE names the design engine
+ *  emits (`--bg-base`, `--text-primary`, `--accent-default`, ...) with fallbacks -- so
+ *  a deck looks composed with no design system attached, and inherits the brand
+ *  exactly when one is passed via `css`.
+ *
+ *  The composition rules, which are what separate a deck from a document:
+ *   - every slide is vertically CENTRED, so a short slide reads as deliberate rather
+ *     than as content that ran out;
+ *   - one idea per slide at a size you can read from the back of a room -- the type
+ *     scale is dramatic on purpose;
+ *   - chrome stays quieter than content: labels are small caps, not badges, and
+ *     evidence refs are superscript footnotes, not pills;
+ *   - accent is used once per slide at most. */
+const BASE_CSS = [
+  ":root {",
+  "  --demo-bg: var(--bg-base, #0b0d12);",
+  "  --demo-surface: var(--bg-surface, #141821);",
+  "  --demo-fg: var(--text-primary, #f2f4f8);",
+  "  --demo-muted: var(--text-secondary, #8d97ab);",
+  "  --demo-accent: var(--accent-default, #8b9bff);",
+  "  --demo-border: var(--border-subtle, #232936);",
+  "  --demo-gutter: 6rem;",
+  "}",
+  "html.dark {",
+  "  --demo-bg: #0b0d12;",
+  "  --demo-surface: #141821;",
+  "  --demo-fg: #f2f4f8;",
+  "  --demo-muted: #8d97ab;",
+  "  --demo-border: #232936;",
+  "}",
+  "",
+  "/* layout */",
+  ".slidev-layout {",
+  "  background: var(--demo-bg);",
+  "  color: var(--demo-fg);",
+  "  padding: 4rem var(--demo-gutter) 5rem;",
+  "  overflow: hidden;",
+  // The footer is absolutely positioned; without this it escapes the slide frame
+  // and lands under it.
+  "  position: relative;",
+  "  height: 100%;",
+  "  display: flex;",
+  "  flex-direction: column;",
+  "  justify-content: center;",   // vertical centring is the single biggest change
+  "}",
+  ".slidev-layout > *:first-child { margin-top: 0; }",
+  "",
+  "/* type */",
+  ".slidev-layout h1 {",
+  "  color: var(--demo-fg);",
+  "  font-size: 3.1rem;",
+  "  line-height: 1.06;",
+  "  font-weight: 620;",
+  "  letter-spacing: -0.028em;",
+  "  max-width: 19ch;",
+  "  margin: 0 0 2rem;",
+  "  text-wrap: balance;",
+  "}",
+  ".slidev-layout.cover h1, .slidev-layout.statement h1 {",
+  "  font-size: 4.6rem;",
+  "  line-height: 1.02;",
+  "  letter-spacing: -0.035em;",
+  "  max-width: 15ch;",
+  "  margin-bottom: 2.4rem;",
+  "}",
+  ".slidev-layout.two-columns h1 { font-size: 1.85rem; max-width: 14ch; margin-bottom: 1.2rem; line-height: 1.12; }",
+  ".slidev-layout p, .slidev-layout li { font-size: 1.24rem; line-height: 1.6; }",
+  "",
+  "/* arc label */",
+  ".demo-kicker {",
+  "  display: flex;",
+  "  align-items: center;",
+  "  gap: 0.8rem;",
+  "  font-size: 0.68rem;",
+  "  font-weight: 560;",
+  "  letter-spacing: 0.2em;",
+  "  text-transform: uppercase;",
+  "  color: var(--demo-muted);",
+  "  margin-bottom: 1.8rem;",
+  "}",
+  '.demo-kicker::after {',
+  '  content: "";',
+  "  flex: 0 0 2.5rem;",
+  "  height: 1px;",
+  "  background: var(--demo-border);",
+  "}",
+  "",
+  "/* claims */",
+  ".slidev-layout ul { list-style: none; padding: 0; margin: 0; }",
+  ".slidev-layout li {",
+  "  position: relative;",
+  "  padding-left: 1.6rem;",
+  "  margin-bottom: 1.15rem;",
+  "  color: var(--demo-fg);",
+  "  max-width: 40ch;",
+  "  text-wrap: pretty;",
+  "}",
+  ".slidev-layout li::before {",
+  '  content: "";',
+  "  position: absolute;",
+  "  left: 0; top: 0.78em;",
+  "  width: 0.42rem; height: 1px;",
+  "  background: var(--demo-accent);",
+  "}",
+  ".demo-lede { font-size: 1.5rem; line-height: 1.45; color: var(--demo-muted); max-width: 34ch; }",
+  "",
+  "/* evidence footnotes */",
+  ".demo-ref {",
+  "  font-size: 0.62em;",
+  "  font-feature-settings: \"sups\";",
+  "  vertical-align: super;",
+  "  color: var(--demo-accent);",
+  "  margin-left: 0.25rem;",
+  "  letter-spacing: 0.04em;",
+  "}",
+  "",
+  "/* live beat */",
+  ".demo-live {",
+  "  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+  "  font-size: 0.86rem;",
+  "  line-height: 1.7;",
+  "  background: var(--demo-surface);",
+  "  border: 1px solid var(--demo-border);",
+  "  border-radius: 10px;",
+  "  padding: 1.1rem 1.2rem 1.15rem;",
+  "  color: var(--demo-fg);",
+  "  position: relative;",
+  "}",
+  '.demo-live::before {',
+  '  content: "";',
+  "  position: absolute; top: 0.85rem; left: 1.2rem;",
+  "  width: 0.5rem; height: 0.5rem; border-radius: 50%;",
+  "  background: var(--demo-accent);",
+  "  box-shadow: 0.85rem 0 0 var(--demo-border), 1.7rem 0 0 var(--demo-border);",
+  "}",
+  ".demo-live { padding-top: 2.4rem; }",
+  ".demo-repo { color: var(--demo-muted); font-size: 0.82rem; margin-top: 0.9rem; letter-spacing: 0.01em; }",
+  ".slidev-layout.two-columns li { font-size: 1rem; margin-bottom: 0.72rem; max-width: 30ch; line-height: 1.5; }",
+  ".slidev-layout.two-columns { padding-bottom: 5.5rem; column-gap: 3.5rem; }",
+  ".slidev-layout.two-columns .demo-live { font-size: 0.8rem; padding: 2.2rem 1rem 1rem; }",
+  "",
+  "/* figure archetypes */",
+  "@keyframes demoPop { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }",
+  "@keyframes demoGrowX { from { transform: scaleX(0); } to { transform: scaleX(1); } }",
+  "",
+  "/* stats: a row of figures the room should remember */",
+  ".demo-stats { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2.4rem; margin: 0.4rem 0 0.5rem; }",
+  ".demo-stat { animation: demoPop 560ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".demo-stat-value {",
+  "  font-size: 3.4rem; font-weight: 640; letter-spacing: -0.03em;",
+  "  line-height: 1; color: var(--demo-accent); font-variant-numeric: tabular-nums;",
+  "}",
+  ".demo-stat-label { font-size: 0.86rem; line-height: 1.4; color: var(--demo-muted); margin-top: 0.7rem; max-width: 18ch; }",
+  "",
+  "/* chain: a process read left to right */",
+  ".demo-chain { display: flex; align-items: flex-start; gap: 0.9rem; margin: 0.6rem 0 0.5rem; }",
+  ".demo-step { flex: 1 1 0; animation: demoPop 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".demo-step-dot {",
+  "  width: 0.9rem; height: 0.9rem; border-radius: 50%;",
+  "  border: 2px solid var(--demo-accent); margin-bottom: 0.9rem;",
+  "}",
+  ".demo-step-label { font-size: 1.02rem; font-weight: 560; color: var(--demo-fg); }",
+  ".demo-step-detail { font-size: 0.82rem; line-height: 1.45; color: var(--demo-muted); margin-top: 0.4rem; max-width: 20ch; }",
+  ".demo-step-link {",
+  "  flex: 0 0 2.2rem; height: 2px; margin-top: 0.35rem;",
+  "  background: var(--demo-border);",
+  "  transform-origin: left center;",
+  "  animation: demoGrowX 420ms cubic-bezier(0.22, 1, 0.36, 1) both;",
+  "}",
+  "",
+  "/* timeline: dated milestones under a growing rule */",
+  ".demo-timeline { position: relative; display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 1.2rem; margin: 1.4rem 0 0.6rem; }",
+  ".demo-timeline-rule {",
+  "  position: absolute; left: 0; right: 0; top: 2.35rem; height: 1px;",
+  "  background: var(--demo-border); transform-origin: left center;",
+  "  animation: demoGrowX 760ms cubic-bezier(0.22, 1, 0.36, 1) both;",
+  "}",
+  ".demo-mile { position: relative; animation: demoPop 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".demo-mile-when {",
+  "  font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase;",
+  "  color: var(--demo-accent); font-weight: 600; margin-bottom: 0.75rem;",
+  "}",
+  ".demo-mile-dot {",
+  "  width: 0.68rem; height: 0.68rem; border-radius: 50%;",
+  "  background: var(--demo-accent); margin-bottom: 0.9rem;",
+  "}",
+  ".demo-mile-label { font-size: 0.95rem; font-weight: 550; color: var(--demo-fg); line-height: 1.35; }",
+  ".demo-mile-detail { font-size: 0.78rem; line-height: 1.45; color: var(--demo-muted); margin-top: 0.35rem; }",
+  "",
+  "/* columns: a comparison, or a division of responsibility */",
+  ".demo-columns { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: 2.2rem; margin: 0.4rem 0 0.5rem; }",
+  ".demo-col {",
+  "  animation: demoPop 540ms cubic-bezier(0.22, 1, 0.36, 1) both;",
+  "  border-top: 2px solid var(--demo-accent); padding-top: 0.9rem;",
+  "  display: flex; flex-direction: column;",
+  "}",
+  ".demo-col-head { font-size: 1.12rem; font-weight: 600; color: var(--demo-fg); margin-bottom: 0.8rem; }",
+  ".demo-col-points { list-style: none; padding: 0; margin: 0; flex: 1; }",
+  ".demo-col-points li {",
+  "  font-size: 0.9rem; line-height: 1.5; color: var(--demo-muted);",
+  "  padding-left: 0; margin-bottom: 0.55rem; max-width: none;",
+  "}",
+  ".demo-col-points li::before { display: none; }",
+  ".demo-col-tag {",
+  "  align-self: flex-start; margin-top: 1rem;",
+  "  font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;",
+  "  color: var(--demo-accent); border: 1px solid var(--demo-border);",
+  "  border-radius: 3px; padding: 0.2rem 0.5rem;",
+  "}",
+  "",
+  ".slidev-layout .demo-note { font-size: 0.92rem; line-height: 1.5; color: var(--demo-muted); margin-top: 1.3rem; max-width: 62ch; }",
+  "/* a slide carrying a figure needs less room for prose */",
+  ".slidev-layout:has(.demo-stats) h1, .slidev-layout:has(.demo-chain) h1,",
+  ".slidev-layout:has(.demo-timeline) h1, .slidev-layout:has(.demo-columns) h1 {",
+  "  font-size: 2.15rem; margin-bottom: 1.5rem; max-width: 26ch;",
+  "}",
+  ".slidev-layout:has(.demo-stats) li, .slidev-layout:has(.demo-chain) li,",
+  ".slidev-layout:has(.demo-timeline) li, .slidev-layout:has(.demo-columns) li {",
+  "  font-size: 0.95rem; margin-bottom: 0.4rem; max-width: 70ch;",
+  "}",
+  "/* motion */",
+  "@keyframes demoRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }",
+  "@keyframes demoNodeIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }",
+  "@keyframes demoDraw { to { stroke-dashoffset: 0; } }",
+  ".slidev-layout .demo-kicker { animation: demoRise 420ms ease-out both; }",
+  ".slidev-layout h1 { animation: demoRise 520ms 70ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".slidev-layout .demo-lede { animation: demoRise 560ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".slidev-layout .demo-live { animation: demoRise 560ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  "",
+  "/* architecture canvas */",
+  ".demo-canvas { width: 100%; max-height: 40vh; margin: 0.2rem 0 1rem; }",
+  ".demo-node { animation: demoNodeIn 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }",
+  ".demo-node rect { fill: var(--demo-surface); stroke: var(--demo-border); stroke-width: 1; }",
+  ".demo-node text { fill: var(--demo-fg); font-size: 15px; text-anchor: middle; font-family: inherit; letter-spacing: 0.01em; }",
+  ".demo-edge {",
+  "  fill: none;",
+  "  stroke: var(--demo-accent);",
+  "  stroke-width: 1.5;",
+  "  stroke-dasharray: 260;",
+  "  stroke-dashoffset: 260;",
+  "  opacity: 0.75;",
+  "  animation: demoDraw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;",
+  "}",
+  '.slidev-layout:has(.demo-canvas) h1 { font-size: 2.1rem; margin-bottom: 1rem; }',
+  '.slidev-layout:has(.demo-canvas) li { font-size: 1rem; margin-bottom: 0.4rem; max-width: 74ch; }',
+  "",
+  "/* footer */",
+  ".demo-foot {",
+  "  position: absolute;",
+  "  bottom: 2.1rem; left: var(--demo-gutter); right: var(--demo-gutter);",
+  "  display: flex; justify-content: space-between; align-items: baseline;",
+  "  font-size: 0.66rem;",
+  "  letter-spacing: 0.08em;",
+  "  text-transform: uppercase;",
+  "  color: var(--demo-muted);",
+  "  opacity: 0.55;",
+  "}",
+  ".slidev-layout.cover .demo-foot, .slidev-layout.statement .demo-foot { display: none; }",
+  // Those slides hide the footer, so the padding reserved for it would push the
+  // block off-centre. Slidev's own `.my-auto` wrapper does the centring; this just
+  // stops us fighting it.
+  ".slidev-layout.cover, .slidev-layout.statement, .slidev-layout.center { padding-bottom: 4rem; }",
+  "",
+  "@media (prefers-reduced-motion: reduce) {",
+  "  .slidev-layout .demo-kicker,",
+  "  .slidev-layout h1,",
+  "  .slidev-layout .demo-lede,",
+  "  .slidev-layout .demo-live,",
+  "  .demo-node,",
+  "  .demo-stat,",
+  "  .demo-step,",
+  "  .demo-step-link,",
+  "  .demo-mile,",
+  "  .demo-timeline-rule,",
+  "  .demo-col,",
+  "  .demo-edge { animation: none !important; stroke-dashoffset: 0 !important; transform: none !important; }",
+  "}",
+].join("\n");
+
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** The rehearsal player, emitted alongside the deck as Slidev's `global-bottom.vue`
+ *  (a component Slidev mounts on every slide). Slidev has no autoplay, but the spec
+ *  knows how long every beat is meant to take — so the deck can advance itself at the
+ *  planned pace and let the presenter feel whether the runtime budget is real. The
+ *  `checkBudget` gate says the plan FITS the slot; this is how you find out whether it
+ *  fits YOU. Durations are baked from the derived timeline, so the player can never
+ *  disagree with the runbook's cue sheet. */
+function playerComponent(output: DemoOutput): string {
+  // Deck order: title slide (no planned time), one per beat, takeaway (no planned time).
+  const plan = [0, ...output.beats.map((b) => b.beat.durationSec), 0];
+  return [
+    '<script setup lang="ts">',
+    "import { computed, onUnmounted, ref, watch } from 'vue'",
+    "import { useNav } from '@slidev/client'",
+    "",
+    "// Planned seconds per slide, in deck order — derived, never authored.",
+    `const PLAN: number[] = [${plan.join(", ")}]`,
+    "",
+    "const { currentSlideNo, next, total } = useNav()",
+    "const playing = ref(false)",
+    "const remaining = ref(0)",
+    "let timer: ReturnType<typeof setInterval> | undefined",
+    "",
+    "const planned = computed(() => PLAN[currentSlideNo.value - 1] ?? 0)",
+    "",
+    "function tick() {",
+    "  if (remaining.value > 0) { remaining.value -= 1; return }",
+    "  if (currentSlideNo.value >= total.value) { stop(); return }",
+    "  next()",
+    "}",
+    "",
+    "function start() {",
+    "  playing.value = true",
+    "  remaining.value = planned.value",
+    "  timer = setInterval(tick, 1000)",
+    "}",
+    "",
+    "function stop() {",
+    "  playing.value = false",
+    "  if (timer) clearInterval(timer)",
+    "  timer = undefined",
+    "}",
+    "",
+    "watch(currentSlideNo, () => { if (playing.value) remaining.value = planned.value })",
+    "onUnmounted(stop)",
+    "",
+    "const mmss = computed(() => {",
+    "  const s = Math.max(0, remaining.value)",
+    "  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`",
+    "})",
+    "</" + "script>",
+    "",
+    "<template>",
+    '  <div class="demo-player">',
+    "    <button @click=\"playing ? stop() : start()\">",
+    "      {{ playing ? '❚❚ pause' : '▶ rehearse' }}",
+    "    </button>",
+    '    <span v-if="playing">{{ mmss }} left on this beat</span>',
+    "  </div>",
+    "</template>",
+    "",
+    "<style scoped>",
+    ".demo-player {",
+    "  position: fixed; bottom: 0.6rem; right: 0.8rem; z-index: 100;",
+    "  display: flex; align-items: center; gap: 0.6rem;",
+    "  font-size: 0.72rem; opacity: 0.5;",
+    "}",
+    ".demo-player:hover { opacity: 1; }",
+    ".demo-player button {",
+    "  background: var(--demo-surface, #171a23);",
+    "  color: var(--demo-fg, #e9ebf1);",
+    "  border: 1px solid var(--demo-border, #272c39);",
+    "  border-radius: 999px; padding: 0.2rem 0.7rem; cursor: pointer;",
+    "}",
+    "</style>",
+    "",
+  ].join("\n");
+}
+
+/** Stagger helper: each element gets its own entrance delay so a figure row reads
+ *  left to right instead of arriving as a block. */
+const stagger = (i: number, step = 90): string => ` style="animation-delay:${i * step}ms"`;
+
+/** A row of figures — the "45 / 35+ / 25 / 10" shape. The number carries the slide;
+ *  the label is the fine print under it. */
+function statsHtml(items: Array<{ value: string; label: string }>, note?: string): string[] {
+  const cells = items.map((it, i) =>
+    `  <div class="demo-stat"${stagger(i)}>` +
+    `<div class="demo-stat-value">${escapeHtml(it.value)}</div>` +
+    `<div class="demo-stat-label">${escapeHtml(it.label)}</div></div>`,
+  );
+  return [
+    `<div class="demo-stats" style="--n:${items.length}">`,
+    ...cells,
+    "</div>",
+    ...(note ? ["", `<p class="demo-note">${escapeHtml(note)}</p>`] : []),
+  ];
+}
+
+/** A process read left to right. The connector between steps draws itself, so the
+ *  sequence is felt rather than just listed. */
+function chainHtml(steps: Array<{ label: string; detail?: string }>, note?: string): string[] {
+  const cells = steps.flatMap((step, i) => {
+    const node =
+      `  <div class="demo-step"${stagger(i, 120)}>` +
+      `<div class="demo-step-dot"></div>` +
+      `<div class="demo-step-label">${escapeHtml(step.label)}</div>` +
+      (step.detail ? `<div class="demo-step-detail">${escapeHtml(step.detail)}</div>` : "") +
+      "</div>";
+    return i === steps.length - 1
+      ? [node]
+      : [node, `  <div class="demo-step-link"${stagger(i, 120)}></div>`];
+  });
+  return [
+    `<div class="demo-chain">`,
+    ...cells,
+    "</div>",
+    ...(note ? ["", `<p class="demo-note">${escapeHtml(note)}</p>`] : []),
+  ];
+}
+
+/** Dated milestones — "how it got this way". The rule grows under the markers. */
+function timelineHtml(
+  items: Array<{ when: string; label: string; detail?: string }>,
+  note?: string,
+): string[] {
+  const cells = items.map((it, i) =>
+    `  <div class="demo-mile"${stagger(i, 110)}>` +
+    `<div class="demo-mile-when">${escapeHtml(it.when)}</div>` +
+    `<div class="demo-mile-dot"></div>` +
+    `<div class="demo-mile-label">${escapeHtml(it.label)}</div>` +
+    (it.detail ? `<div class="demo-mile-detail">${escapeHtml(it.detail)}</div>` : "") +
+    "</div>",
+  );
+  return [
+    `<div class="demo-timeline" style="--n:${items.length}">`,
+    `  <div class="demo-timeline-rule"></div>`,
+    ...cells,
+    "</div>",
+    ...(note ? ["", `<p class="demo-note">${escapeHtml(note)}</p>`] : []),
+  ];
+}
+
+/** Two or three titled columns — a comparison, or a division of responsibility. */
+function columnsHtml(
+  columns: Array<{ heading: string; points: string[]; tag?: string }>,
+  note?: string,
+): string[] {
+  const cells = columns.map((c, i) =>
+    `  <div class="demo-col"${stagger(i, 130)}>` +
+    `<div class="demo-col-head">${escapeHtml(c.heading)}</div>` +
+    `<ul class="demo-col-points">` +
+    c.points.map((pt) => `<li>${escapeHtml(pt)}</li>`).join("") +
+    "</ul>" +
+    (c.tag ? `<div class="demo-col-tag">${escapeHtml(c.tag)}</div>` : "") +
+    "</div>",
+  );
+  return [
+    `<div class="demo-columns" style="--n:${columns.length}">`,
+    ...cells,
+    "</div>",
+    ...(note ? ["", `<p class="demo-note">${escapeHtml(note)}</p>`] : []),
+  ];
+}
+
+/** Render a canvas beat as an inline SVG that ASSEMBLES: nodes fade up in graph order,
+ *  edges draw themselves after. This is the brief's "watch the architecture assemble"
+ *  beat — and it stays a derived artifact, because the positions come from
+ *  `buildStoryboard`'s layout, never from the author. */
+function canvasSvg(canvas: StoryboardCanvas): string {
+  const PAD = 28;
+  const W = 190;
+  const H = 62;
+  const xs = canvas.nodes.map((n) => n.x);
+  const ys = canvas.nodes.map((n) => n.y);
+  const width = Math.max(...xs, 0) + W + PAD * 2;
+  const height = Math.max(...ys, 0) + H + PAD * 2;
+  const at = (id: string) => canvas.nodes.find((n) => n.id === id);
+
+  const parts: string[] = [
+    `<svg class="demo-canvas" viewBox="0 0 ${width} ${height}" role="img">`,
+  ];
+
+  canvas.edges.forEach((e, i) => {
+    const a = at(e.from);
+    const b = at(e.to);
+    if (!a || !b) return; // the gate already reported this; never draw a guess
+    const x1 = a.x + PAD + W;
+    const y1 = a.y + PAD + H / 2;
+    const x2 = b.x + PAD;
+    const y2 = b.y + PAD + H / 2;
+    const mid = (x1 + x2) / 2;
+    parts.push(
+      `<path class="demo-edge" style="animation-delay:${(canvas.nodes.length * 140 + i * 160)}ms" ` +
+        `d="M${x1} ${y1} C${mid} ${y1} ${mid} ${y2} ${x2} ${y2}" />`,
+    );
+  });
+
+  canvas.nodes.forEach((n, i) => {
+    const x = n.x + PAD;
+    const y = n.y + PAD;
+    parts.push(
+      `<g class="demo-node" style="animation-delay:${i * 140}ms">`,
+      `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8" />`,
+      `<text x="${x + W / 2}" y="${y + H / 2 + 5}">${escapeHtml(n.label)}</text>`,
+      "</g>",
+    );
+  });
+
+  parts.push("</svg>");
+  return parts.join("\n");
+}
+
+/** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline -- the
  *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
 export class SlidevSink implements DemoSink {
   constructor(private readonly opts: SlidevSinkOptions = {}) {}
 
   emit(output: DemoOutput): SinkFile[] {
     const { spec } = output;
-    const theme = this.opts.theme ?? "default";
+    const theme = this.opts.theme ?? DEFAULT_SLIDEV_THEME;
 
     const head = [
       "---",
       `theme: ${theme}`,
       `title: ${yamlString(spec.title)}`,
       `info: ${yamlString(spec.brief)}`,
+      // Slidev ships slide transitions; a deck with none reads as a PDF. `slide-left`
+      // matches the left-to-right reading of the arc.
+      `transition: ${this.opts.transition ?? DEFAULT_TRANSITION}`,
+      "layout: cover",
       "---",
       "",
       `# ${spec.title}`,
       "",
-      spec.brief,
+      `<p class="demo-lede">${escapeHtml(spec.brief)}</p>`,
       "",
       `<!-- Derived by @objectcore/demo from ${spec.name}. Do not hand-edit: re-run \`bun run demo:build\`. -->`,
     ].join("\n");
 
-    const slides = output.beats.map((b) => this.slide(b));
+    const slides = output.beats.map((b) => this.slide(b, output));
 
     const closing = [
+      "---",
+      "layout: center",
+      "---",
+      "",
       "# Take this with you",
       "",
-      spec.takeaway,
+      `<p class="demo-lede">${escapeHtml(spec.takeaway)}</p>`,
       "",
       "<!--",
       "The transferable takeaway is a required field of the spec, not a courtesy slide:",
@@ -106,27 +664,118 @@ export class SlidevSink implements DemoSink {
       "-->",
     ].join("\n");
 
-    return [{ path: this.opts.path ?? "deck.md", content: [head, ...slides, closing].join(SLIDE_BREAK) + "\n" }];
+    return [{
+      // Slidev injects `style.css` sitting next to the deck into the whole app. A
+      // `<style>` block INSIDE a slide is scoped to that slide, which is why the deck
+      // rendered completely unstyled until this moved out of the markdown.
+      path: this.opts.stylePath ?? "style.css",
+      content: this.opts.css ? `${this.opts.css}\n\n${BASE_CSS}\n` : `${BASE_CSS}\n`,
+    }, {
+      path: this.opts.playerPath ?? "global-bottom.vue",
+      content: playerComponent(output),
+    }, {
+      path: this.opts.path ?? "deck.md",
+      // Each slide opens with its own `---\nlayout: x\n---`, and in Slidev THAT is the
+      // slide separator. Joining with SLIDE_BREAK as well emitted a second one, so every
+      // beat got a blank slide ahead of it (19 slides for a 10-slide deck).
+      content: [head, ...slides, closing].join("\n\n") + "\n",
+    }];
   }
 
-  private slide(b: DerivedBeat): string {
+  private slide(b: DerivedBeat, output: DemoOutput): string {
     const { beat } = b;
-    const lines: string[] = [`# ${beat.title}`, ""];
+    const lines: string[] = [
+      "---",
+      `layout: ${LAYOUT[beat.kind]}`,
+      "---",
+      "",
+      `<div class="demo-kicker">${KIND_KICKER[beat.kind]}</div>`,
+      "",
+      `# ${beat.title}`,
+      "",
+    ];
 
-    if (beat.kind === "live-demo" && beat.live) {
-      lines.push(`> Live — \`${beat.live.repo}\``, "", beat.live.task, "");
-      if (beat.live.traceSurfaces?.length) {
-        lines.push("What you can see the whole time:", "");
-        for (const surface of beat.live.traceSurfaces) lines.push(`- ${surface}`);
-        lines.push("");
-      }
+    const isLive = beat.kind === "live-demo" && beat.live;
+
+    // Each visual archetype has one renderer; the author writes content, never layout.
+    const v = beat.visual;
+    if (v?.kind === "canvas") {
+      const canvas = buildStoryboard(output).canvases.find((c) => c.beatId === beat.id);
+      if (canvas) lines.push(canvasSvg(canvas), "");
+    } else if (v?.kind === "stats") {
+      lines.push(...statsHtml(v.items, v.note), "");
+    } else if (v?.kind === "chain") {
+      lines.push(...chainHtml(v.steps, v.note), "");
+    } else if (v?.kind === "timeline") {
+      lines.push(...timelineHtml(v.items, v.note), "");
+    } else if (v?.kind === "columns") {
+      lines.push(...columnsHtml(v.columns, v.note), "");
     }
 
-    for (const claim of b.claims) {
-      const refs = claim.evidence.map((e) => `\`${e.id}\``).join(", ");
-      lines.push(`- ${claim.text}${refs ? ` <sup>${refs}</sup>` : ""}`);
+    if (isLive) {
+      // LEFT column: what is actually being run.
+      lines.push(
+        `<div class="demo-live">$ ${escapeHtml(beat.live!.task)}</div>`,
+        "",
+        `<div class="demo-repo">${escapeHtml(beat.live!.repo)}</div>`,
+        "",
+      );
     }
-    if (b.claims.length) lines.push("");
+
+    // Claim text stays raw: a bullet is markdown, so an author can write `code` or
+    // emphasis in a claim. Everything landing inside an HTML element is escaped.
+    // Evidence renders as a superscript footnote marker, numbered within the slide —
+    // a keynote cites, it does not wear its citations as badges. The ids stay in the
+    // speaker notes and the appendix, where they are actually looked up.
+    const slideRefs: string[] = [];
+    const claimLines = b.claims.map((claim) => {
+      const marks = claim.evidence.map((e) => {
+        let n = slideRefs.indexOf(e.id);
+        if (n === -1) n = slideRefs.push(e.id) - 1;
+        return String(n + 1);
+      });
+      const sup = marks.length ? ` <span class="demo-ref">${marks.join(",")}</span>` : "";
+      return `- ${claim.text}${sup}`;
+    });
+
+    // `<v-clicks>` reveals a list one item per click — Slidev's own directive, so the
+    // motion is real rather than a CSS trick, and the presenter paces the argument.
+    const reveal = this.opts.progressiveReveal !== false;
+    const clicked = (items: string[]): string[] =>
+      reveal && items.length > 1 ? ["<v-clicks>", "", ...items, "", "</v-clicks>"] : items;
+
+    if (isLive) {
+      // RIGHT column: what stays visible while it runs. Claims are deliberately NOT
+      // on this slide — the room is about to watch the thing itself, so the slide is a
+      // holding frame, not a page of text. They stay in the speaker notes and the
+      // evidence appendix, which is where a claim is actually checked. Putting them
+      // here overflowed the column and collided with the footer.
+      lines.push(
+        "::right::",
+        "",
+        '<div class="demo-kicker">On screen throughout</div>',
+        "",
+      );
+      // No wrapper div: a markdown list inside a raw HTML block is not parsed.
+      const traces = (beat.live!.traceSurfaces ?? []).map((t) => `- ${t}`);
+      lines.push(...clicked(traces), "");
+    } else if (claimLines.length) {
+      lines.push(...clicked(claimLines), "");
+    }
+
+    // A slide carrying nothing but a title is an outline, not a deck. When a beat has
+    // NOTHING else on it, show whose question it answers -- the spec already knows.
+    // A beat with a figure or claims is not bare, and stacking the lede under a figure
+    // pushed it into the footer.
+    if (!b.claims.length && !isLive && !beat.visual && b.persona) {
+      lines.push(`<p class="demo-lede">${escapeHtml(b.persona.cares)}</p>`, "");
+    }
+
+    lines.push(
+      `<div class="demo-foot"><span>${escapeHtml(output.spec.title)}</span>` +
+        `<span>${clock(b.startSec)}</span></div>`,
+      "",
+    );
 
     // Speaker notes: narration plus the beat's place in the arc and on the clock.
     lines.push(
@@ -135,6 +784,18 @@ export class SlidevSink implements DemoSink {
         (b.persona ? ` · for ${b.persona.title}: ${b.persona.cares}` : ""),
     );
     if (beat.narration) lines.push("", beat.narration);
+
+    // A live slide deliberately shows no claims, so the presenter would otherwise lose
+    // them entirely. They belong in the notes, with their sources spelled out — this is
+    // the one place the operator reads mid-demo.
+    if (isLive && b.claims.length) {
+      lines.push("", "Claims to make while it runs:");
+      for (const claim of b.claims) {
+        const refs = claim.evidence.map((e) => `${e.id} → ${e.ref}`).join("; ");
+        lines.push(`  - ${claim.text} [${refs || "unresolved"}]`);
+      }
+    }
+
     lines.push("-->");
 
     return lines.join("\n");
@@ -217,6 +878,8 @@ export class RunbookSink implements DemoSink {
 
     if (beat.narration) lines.push(beat.narration, "");
 
+    // Claim text stays raw: a bullet is markdown, so an author can write `code` or
+    // emphasis in a claim. Everything landing inside an HTML element is escaped.
     for (const claim of b.claims) {
       const refs = claim.evidence.map((e) => `${e.id} → ${e.ref}`).join("; ");
       lines.push(`- **Claim:** ${claim.text}`, `  - **Backed by:** ${refs || "(unresolved)"}`);
@@ -343,6 +1006,10 @@ export class StoryboardSink implements DemoSink {
             "Scenes cover the framing beats only. The live agentic run is never " +
             "pre-rendered — rendering it would reproduce the opaque-reel failure mode.",
           scenes: board.scenes,
+          canvases: board.canvases.map((c) => ({ beatId: c.beatId, nodes: c.nodes, edges: c.edges })),
+          broll: board.broll,
+          title: output.spec.title,
+          takeaway: output.spec.takeaway,
         },
         null,
         2,

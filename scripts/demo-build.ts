@@ -6,7 +6,7 @@
 // Build refuses to emit a demo the gate rejects. That is the point of putting the
 // gate under the sinks: an unbacked claim cannot reach a slide by way of a build.
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { existsSync } from "node:fs";
 import {
@@ -40,8 +40,54 @@ if (targets.length === 0) {
   process.exit(0);
 }
 
-const sinks: DemoSink[] = [
-  new SlidevSink(),
+/** A demo may name a `design/<name>` system, and optionally one THEME of it. Read at
+ *  the EDGE and handed to the sink as a plain string, so `@objectcore/demo` never
+ *  depends on the design engine (the ports discipline: the sink takes CSS, not a
+ *  design system). A named-but-unbuilt system is a loud note, not a silent fallback.
+ *
+ *  With a theme named, we build the custom properties from that theme's own token
+ *  JSON rather than shipping `tokens.css`. That file declares the default theme under
+ *  `:root` and every other under `[data-theme="x"]` — a selector nothing in a Slidev
+ *  deck ever sets, so a deck asking for `nocturne` would silently present in `paper`.
+ *  Emitting the chosen theme AS `:root` (and again under `html.dark`) pins the palette:
+ *  a deliberate choice should not flip with the viewer's light/dark toggle. */
+async function designCss(
+  name: string | undefined,
+  theme: string | undefined,
+): Promise<string | undefined> {
+  if (!name) return undefined;
+  const dir = join(root, "design", name, "dist");
+
+  if (theme) {
+    const file = join(dir, `${theme}.tokens.json`);
+    try {
+      const tokens = JSON.parse(await readFile(file, "utf8")) as Record<string, unknown>;
+      const decls = Object.entries(tokens)
+        .filter(([, v]) => typeof v === "string")
+        .map(([k, v]) => `  --${k.replace(/\./g, "-")}: ${String(v)};`)
+        .sort()
+        .join("\n");
+      if (!decls) throw new Error("no string-valued tokens");
+      // Same block twice: the pinned palette wins in both appearances.
+      return `:root {\n${decls}\n}\n\nhtml.dark {\n${decls}\n}\n`;
+    } catch {
+      console.log(
+        `  ! design theme "${theme}" of "${name}" is not built — run \`bun run design:build\`; ` +
+        "falling back to the system default.",
+      );
+    }
+  }
+
+  try {
+    return await readFile(join(dir, "tokens.css"), "utf8");
+  } catch {
+    console.log(`  ! design system "${name}" has no built tokens.css — run \`bun run design:build\`; using the deck's own styling.`);
+    return undefined;
+  }
+}
+
+const sinks = (css: string | undefined): DemoSink[] => [
+  new SlidevSink(css === undefined ? {} : { css }),
   new RunbookSink(),
   new EvidenceSink(),
   // The video track emits only when the demo declares visuals (CanvasSink returns
@@ -70,7 +116,7 @@ for (const name of targets) {
   await mkdir(outDir, { recursive: true });
 
   const written: string[] = [];
-  for (const sink of sinks) {
+  for (const sink of sinks(await designCss(spec.designSystem, spec.designTheme))) {
     for (const file of sink.emit(output)) {
       const path = join(outDir, file.path);
       await writeFile(path, file.content, "utf8");
