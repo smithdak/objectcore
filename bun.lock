@@ -5,17 +5,41 @@
     "": {
       "name": "objectcore",
       "dependencies": {
+        "@objectcore/demo": "workspace:*",
+        "@objectcore/demo-mcp": "workspace:*",
         "@objectcore/design": "workspace:*",
         "@objectcore/eval": "workspace:*",
         "@objectcore/forge": "workspace:*",
         "@objectcore/knowledge": "workspace:*",
+        "@objectcore/quality": "workspace:*",
         "@objectcore/registry-core": "workspace:*",
         "@objectcore/registry-db": "workspace:*",
         "@objectcore/release": "workspace:*",
+        "@objectcore/security": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "1.3.14",
         "typescript": "^5.6.0",
+      },
+    },
+    "packages/demo": {
+      "name": "@objectcore/demo",
+      "version": "0.0.1",
+      "dependencies": {
+        "@anthropic-ai/sdk": "latest",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.6.0",
+      },
+    },
+    "packages/demo-mcp": {
+      "name": "@objectcore/demo-mcp",
+      "version": "0.0.1",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "1.29.0",
+        "@objectcore/demo": "workspace:*",
+        "zod": "4.4.3",
       },
     },
     "packages/design": {
@@ -71,6 +95,18 @@
         "zod": "4.4.3",
       },
     },
+    "packages/quality": {
+      "name": "@objectcore/quality",
+      "version": "0.0.1",
+      "dependencies": {
+        "@objectcore/eval": "workspace:*",
+        "@objectcore/registry-core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.6.0",
+      },
+    },
     "packages/registry-core": {
       "name": "@objectcore/registry-core",
       "version": "0.0.1",
@@ -108,9 +144,20 @@
         "typescript": "^5.6.0",
       },
     },
+    "packages/security": {
+      "name": "@objectcore/security",
+      "version": "0.0.1",
+      "dependencies": {
+        "@objectcore/registry-core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.6.0",
+      },
+    },
   },
   "packages": {
-    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.106.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-ufwVvYNDBj2dzOGupBCTaNzBLxqcTnGOzI4z8Wouxlt+mT3J3HuOmatgCy1VmwCHOUueqZ41ERhm0O99OUcbWA=="],
+    "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.115.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-BJrFIVyjNuU8lfDyIJTvlRYzgQg+zEl78BxE7fq8esULsGz9IRQvGtW5spq3tydmtjQb/GFdooKGdGsetpx+lQ=="],
 
     "@babel/runtime": ["@babel/runtime@7.29.7", "", {}, "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="],
 
@@ -144,6 +191,10 @@
 
     "@neon-rs/load": ["@neon-rs/load@0.0.4", "", {}, "sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw=="],
 
+    "@objectcore/demo": ["@objectcore/demo@workspace:packages/demo"],
+
+    "@objectcore/demo-mcp": ["@objectcore/demo-mcp@workspace:packages/demo-mcp"],
+
     "@objectcore/design": ["@objectcore/design@workspace:packages/design"],
 
     "@objectcore/eval": ["@objectcore/eval@workspace:packages/eval"],
@@ -154,6 +205,8 @@
 
     "@objectcore/knowledge-mcp": ["@objectcore/knowledge-mcp@workspace:packages/knowledge-mcp"],
 
+    "@objectcore/quality": ["@objectcore/quality@workspace:packages/quality"],
+
     "@objectcore/registry-core": ["@objectcore/registry-core@workspace:packages/registry-core"],
 
     "@objectcore/registry-db": ["@objectcore/registry-db@workspace:packages/registry-db"],
@@ -161,6 +214,8 @@
     "@objectcore/registry-server": ["@objectcore/registry-server@workspace:packages/registry-server"],
 
     "@objectcore/release": ["@objectcore/release@workspace:packages/release"],
+
+    "@objectcore/security": ["@objectcore/security@workspace:packages/security"],
 
     "@stablelib/base64": ["@stablelib/base64@1.0.1", "", {}, "sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ=="],
 
@@ -383,6 +438,8 @@
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
+
+    "@objectcore/design/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.106.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-ufwVvYNDBj2dzOGupBCTaNzBLxqcTnGOzI4z8Wouxlt+mT3J3HuOmatgCy1VmwCHOUueqZ41ERhm0O99OUcbWA=="],
 
     "body-parser/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
 

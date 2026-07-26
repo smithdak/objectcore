@@ -3,5 +3,17 @@
   "owner": { "name": "smithdak" },
   "pluginRoot": "./plugins",
   "schema": "https://objectcore.ai/schemas/marketplace.json",
-  "registryUrl": "https://registry.objectcore.ai/v1/marketplace.json"
+  "registryUrl": "https://registry.objectcore.ai/v1/marketplace.json",
+  "quality": {
+    "maxBodyLines": 500,
+    "maxBodyTokens": 5000,
+    "maxDescriptionChars": 1024,
+    "referenceMaxDepth": 1
+  },
+  "policy": {
+    "networkAllowlist": [],
+    "compositionAllowlist": [],
+    "hitRateThreshold": 0.85,
+    "versionGuard": { "baseRef": "main" }
+  }
 }

@@ -1,10 +1,11 @@
 ---
 id: release-auto-publishes-on-merge
 type: lesson
-title: Merging to main auto-publishes current versions; changesets only bump
-tags: [release, ci, stage-2]
+title: A plugin's first publish needs no changeset — merging to main auto-publishes current versions
+tags: [release, ci, stage-2, first-publish, changeset, publish, plugin]
 source: .github/workflows/release.yml
 created: 2026-06-26
+updated: 2026-07-26
 ---
 
 Merging to `main` runs the release workflow, which tags each plugin

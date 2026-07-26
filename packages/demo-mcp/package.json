@@ -1,0 +1,12 @@
+{
+  "name": "@objectcore/demo-mcp",
+  "version": "0.0.1",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@objectcore/demo": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "4.4.3"
+  }
+}

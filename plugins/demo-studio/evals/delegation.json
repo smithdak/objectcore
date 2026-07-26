@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "prompt": "Here's the demo I drafted for next week \u2014 tear it apart. Is any of this actually substantive or does it read like AI slop?",
+      "expect": "demo-critic",
+      "note": "the adversarial review of a finished draft"
+    },
+    {
+      "prompt": "Design the live coding segment for my demo: pick the repo and the task, decide where I stop for questions, and which failure I should let happen.",
+      "expect": "live-demo-choreographer",
+      "note": "designing the live beat"
+    },
+    {
+      "prompt": "My demo claims a 40% cycle-time reduction and that agents catch more bugs pre-merge. Find what actually backs each of those and tell me which I should cut.",
+      "expect": "evidence-hunter",
+      "note": "sourcing and verifying claims"
+    },
+    {
+      "prompt": "Add a category column to the registry DB schema and write the migration.",
+      "expect": null,
+      "note": "ordinary build work \u2014 must not be hijacked by any demo agent"
+    },
+    {
+      "prompt": "Send the slides from last week's demo to the sales team and book a room for Thursday.",
+      "expect": null,
+      "note": "negative \u2014 shares \"demo\"/\"slides\" vocabulary but is logistics; no agent should take it. (Gate-failure diagnosis genuinely belongs to reflection's self-reflection, so asserting null on such a prompt was a malformed case.)"
+    }
+  ]
+}

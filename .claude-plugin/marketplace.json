@@ -21,6 +21,26 @@
       "category": "workflow"
     },
     {
+      "name": "demo-studio",
+      "source": "demo-studio",
+      "description": "Produce technical demos that are substantive and observable rather than polished reels — structure the narrative arc, choreograph a live agentic segment with visible traces and a planned recoverable failure, back every claim with verifiable evidence, and gate the whole thing deterministically.",
+      "version": "0.0.1",
+      "author": {
+        "name": "smithdak"
+      },
+      "license": "MIT",
+      "keywords": [
+        "objectcore",
+        "generator",
+        "demo",
+        "presentation",
+        "narrative",
+        "live-demo",
+        "evidence"
+      ],
+      "category": "generator"
+    },
+    {
       "name": "design-forge",
       "source": "design-forge",
       "description": "ObjectCore meta-plugin: author, theme, and consume a stack-agnostic design system from a DTCG design-token source of truth — generate accessible token scales, theme them with a resolver, and keep UI on-brand by picking semantic tokens by role — or quick-start from a curated seeded theme preset (inkwell, cathode).",

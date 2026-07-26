@@ -19,6 +19,8 @@ import {
   buildReport,
   collectAgentSurfaces,
   collectSkillSurfaces,
+  computeHitRates,
+  formatHitRates,
   formatReport,
   formatScore,
   hasApiKey,
@@ -35,7 +37,7 @@ import {
 import { loadWorkspace } from "./_workspace";
 
 const root = join(import.meta.dir, "..");
-const { plugins, catalog } = await loadWorkspace(root);
+const { plugins, catalog, cfg } = await loadWorkspace(root);
 
 const results = await runOutputEvals(plugins, catalog);
 results.push(...(await runCoverageEvals(plugins)));
@@ -105,6 +107,17 @@ await writeFile(
   "utf8",
 );
 console.log(`\nscore: ${formatScore(score)}`);
+
+// Additive observability only — a per-trigger-surface hit-rate percentage across
+// its whole case set. Never gates on its own; `isGreen(report)` below remains the
+// sole admission decision (see hitrate.ts for why).
+const hitRates = computeHitRates(report.results, { threshold: cfg.policy?.hitRateThreshold });
+await writeFile(
+  join(root, "dist", "hit-rates.json"),
+  JSON.stringify(hitRates, null, 2) + "\n",
+  "utf8",
+);
+console.log(`\n${formatHitRates(hitRates)}`);
 
 if (!isGreen(report)) {
   console.error(`\n${summarizeEvidence(evidence)}`);

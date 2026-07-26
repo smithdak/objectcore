@@ -109,3 +109,30 @@ export async function hasMcpConfig(dir: string): Promise<boolean> {
   }
   return false;
 }
+
+// --- version-guard git edge (scripts/check-versions.ts) --------------------
+// Pure hashing lives in @objectcore/release's contenthash.ts; this is the git IO
+// that feeds it — reading a base ref's committed tree, same split as the rest of
+// this file (git() above is the shared low-level runner).
+
+/** File paths (relative to repo root, POSIX `/`) committed under `relDir` at
+ *  `ref`. Empty when the ref or the dir doesn't exist at that ref — the caller
+ *  treats an empty base listing as "plugin didn't exist yet" (exempt, not a
+ *  violation). */
+export function listFilesAtRef(root: string, ref: string, relDir: string): string[] {
+  try {
+    const out = git(root, ["ls-tree", "-r", "--name-only", ref, "--", relDir]);
+    return out ? out.split("\n").filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** A file's content as committed at `ref`, or null if it doesn't exist there. */
+export function fileAtRef(root: string, ref: string, relPath: string): string | null {
+  try {
+    return execFileSync("git", ["show", `${ref}:${relPath}`], { cwd: root, encoding: "utf8" });
+  } catch {
+    return null;
+  }
+}

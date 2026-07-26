@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "prompt": "I have 20 minutes to present our agentic delivery pipeline to a room of principal architects. How should I structure the talk?",
+      "expect": "structuring-a-demo",
+      "note": "planning the arc from scratch"
+    },
+    {
+      "prompt": "My demo drags in the middle and the ending falls flat \u2014 how do I fix the shape of it?",
+      "expect": "structuring-a-demo",
+      "note": "distinct intent: repairing an existing arc"
+    },
+    {
+      "prompt": "I'm doing a live demo where an AI agent edits a real repo on stage. What should I keep on screen while it runs, and what do I do if it breaks?",
+      "expect": "demoing-agents-transparently",
+      "note": "designing the live segment"
+    },
+    {
+      "prompt": "Should I pre-record the agent run or do it live? I'm worried it'll fail in front of the audience.",
+      "expect": "demoing-agents-transparently",
+      "note": "distinct intent: the live-vs-recorded decision"
+    },
+    {
+      "prompt": "Is there a ready-made demo I can start from instead of writing one from scratch?",
+      "expect": "choosing-a-demo-archetype",
+      "note": "quick-start instead of authoring"
+    },
+    {
+      "prompt": "Which demo archetype fits an audience deciding whether to fund a multi-quarter migration?",
+      "expect": "choosing-a-demo-archetype",
+      "note": "distinct intent: matching an archetype to an audience"
+    },
+    {
+      "prompt": "Convert this CSV file into JSON and sort it by the second column.",
+      "expect": null,
+      "note": "plain negative \u2014 clearly unrelated"
+    },
+    {
+      "prompt": "Can you book a demo of the product with the vendor for next Tuesday afternoon?",
+      "expect": null,
+      "note": "confusability negative \u2014 shares 'demo', wrong sense entirely (scheduling)"
+    },
+    {
+      "prompt": "Which starter template should I pick for a new Next.js project?",
+      "expect": null,
+      "note": "confusability negative \u2014 shares \"which ... should I pick\" with choosing-a-demo-archetype but is out of domain, so NOTHING should fire. (The design-forge boundary is proven by design-forge's own positives, not by asserting null on a prompt that legitimately belongs to it.)"
+    }
+  ]
+}

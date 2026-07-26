@@ -30,10 +30,18 @@ bun run design:scaffold <spec.json> [--force]  # plan 012: scaffold a DTCG desig
 bun run design:seed <preset> [--name <s>] [--themes a,b] [--list] [--force]  # plan 014: instantiate a curated seeded theme preset (inkwell|cathode) — quick start, same self-gate
 bun run design:check             # plan 012: validate + contrast-gate every design/ system (part of check)
 bun run design:build             # plan 012/014: derive the token views (CSS vars, per-theme JSON, Tailwind, Style Dictionary, spec.html + contrast-proof.json)
+bun run demo:seed <preset> [--name <s>] [--list] [--force]  # plan 016: instantiate a curated demo archetype (enterprise-agentic|platform-migration) — quick start, same self-gate
+bun run demo:scaffold <brief.json> [--force]  # plan 016: expand a brief into a gate-passing demo skeleton (transparent by construction)
+bun run demo:check               # plan 016: gate every demos/ demo — structure, live safety, evidence, de-slop, budget, video balance (part of check)
+bun run demo:build [<name>]      # plan 016: derive the demo views (Slidev deck, operator runbook, evidence appendix + proof, Remotion storyboard, canvases)
+bun run demo:mcp                 # plan 016: serve the demo engine over MCP/stdio (packages/demo-mcp) — demo://list + demo://storyboard/{name} + demo_check/demo_storyboard/demo_render
 bun run release:status           # Stage 2: preview what the pending changesets would release
 bun run release:version          # Stage 2: consume changesets -> bump plugin.json + changelogs + re-derive
 bun run release:publish          # Stage 2: tag {plugin}--v{semver}, SHA-pin the catalog, (CI) attest
 bun run check:catalog            # read-only: validate every plugin + assert marketplace.json is in sync (no writes)
+bun run check:quality            # body-content quality gate (@objectcore/quality: length/voice/reference-depth/composition-edge rules; part of check)
+bun run check:security           # security gate (@objectcore/security: script inventory/sha256, network-call + secret scanning; part of check; writes dist/security-inventory.json)
+bun run check:versions [--base-ref <ref>]  # independent content-hash version-guard vs a base git ref (NOT part of check — needs local git history; see below)
 bun run kb:add --json '<entry>'  # append a knowledge-base entry (lesson|pattern|gotcha|decision) + regenerate INDEX.md
 bun run kb:index                 # regenerate knowledge/INDEX.md from knowledge/entries/ (INDEX.md is a build artifact)
 bun run kb:check                 # read-only: parse entries + assert INDEX.md is in sync and within budget (part of check)
@@ -43,7 +51,7 @@ bun run kb:verify [<id>...]  # plan 013: classify active entries fresh|stale|unv
 bun run kb:cite <id> [--source '<ref>']  # plan 013: record a citation to metrics/kb-usage.jsonl (the KB's usage/ROI signal for kb:stats)
 bun run kb:stats                 # plan 013: join entries × citations × staleness → rank prune candidates (stale→never-cited→oldest)
 bun run kb:mcp                   # plan 013: serve the KB over MCP/stdio (packages/knowledge-mcp) — kb://index + kb://entries/{id} + kb_search/kb_add/kb_cite
-bun run check                    # the one-command gate = tsc + check:catalog + kb:check + design:check + test + eval (CI runs this verbatim)
+bun run check                    # the one-command gate = tsc + check:quality + check:security + check:catalog + kb:check + design:check + demo:check + test + eval (CI runs this verbatim)
 bun run clean:git                # git hygiene: prune stale worktrees + delete merged branches (--dry-run | --gone | --remote)
 bun run registry:dev            # serve http://localhost:8787/v1/marketplace.json (Git source, dev loop)
 bun run registry:prod           # Stage 3: serve the SHA-pinned catalog from the registry DB (RegistryDbSource); OBJECTCORE_SOURCE=db|file
@@ -74,7 +82,7 @@ Because the HTTP adapter runs on every dev loop and the contract tests run on ev
 
 ### The gate (`bun run check` + CI)
 
-The hard rule "no plugin enters the catalog without passing validation AND its activation eval" is enforced by `bun run check` (= `tsc` + `check:catalog` + `kb:check` + `design:check` + `test` + `eval`), which `.github/workflows/ci.yml` runs **verbatim as a single step** on every PR/push — single-sourced in package.json so CI can never silently drift from the local gate. `check:catalog` (`scripts/check-catalog.ts`) is read-only: it re-derives the catalog, runs `validateAll`, and asserts the committed `marketplace.json` *byte-matches* the derivation — so a hand-edit or a forgotten `build:marketplace` fails CI. Activation evals run in CI only when the `ANTHROPIC_API_KEY` secret is set (otherwise reported as skipped, job stays green) — **set that secret to actually enforce the activation half of the gate.**
+The hard rule "no plugin enters the catalog without passing validation AND its activation eval" is enforced by `bun run check` (= `tsc` + `check:quality` + `check:security` + `check:catalog` + `kb:check` + `design:check` + `test` + `eval`), which `.github/workflows/ci.yml` runs **verbatim as a single step** on every PR/push — single-sourced in package.json so CI can never silently drift from the local gate. `check:catalog` (`scripts/check-catalog.ts`) is read-only: it re-derives the catalog, runs `validateAll`, and asserts the committed `marketplace.json` *byte-matches* the derivation — so a hand-edit or a forgotten `build:marketplace` fails CI. `check:quality`/`check:security` (`@objectcore/quality`/`@objectcore/security`, below) extend that floor to body content and script/secret hygiene — read-only, no writes beyond their own `dist/*.json` diagnostic artifacts. Activation evals run in CI only when the `ANTHROPIC_API_KEY` secret is set (otherwise reported as skipped, job stays green) — **set that secret to actually enforce the activation half of the gate.**
 
 ### The eval harness (`packages/eval` — Stage 1, the gate)
 
@@ -89,6 +97,20 @@ The hard rule "no plugin enters the catalog without passing validation AND its a
 **EDDOps evidence (F4):** every run — green or red — `scripts/eval.ts` writes structured evidence to `dist/eval-evidence.json` (build artifact, gitignored) via `buildEvidence` (pure; timestamp injected): `failures[]` plus `nearMisses[]` (passed routes below a confidence threshold — "fragile green"). That promotes the *terminal* gate into a *continuous governing function*: on a red gate the `reflection` plugin's `PostToolUse` hook reads the evidence and nudges delegating the `self-reflection` subagent — the gate now **feeds** the loop instead of only blocking it.
 
 **Conventions:** per-plugin eval specs live at the plugin root under `evals/` (`activation.json`, `delegation.json`, `output.json`) — an ObjectCore convention, *not* a Claude Code component, so it doesn't violate the components-at-root rule. When a key is absent, activation + delegation evals are reported as **skipped**, never silently passed (no silent caps). Trigger surfaces (skills + agents) are read from component frontmatter by `trigger-surface.ts`.
+
+**Trigger hit-rate reporting** (`hitrate.ts`, ported from the sibling `skillsmith` project): `computeHitRates` groups activation/delegation `EvalResult`s by `(suite, plugin, target)` — using the structured `target` field now stamped on each result — into a per-surface hit-rate percentage against `objectcore.config.json`'s `policy.hitRateThreshold` (default 0.85), written to `dist/hit-rates.json` and printed by `scripts/eval.ts`. This is deliberately **additive observability, never a second admission gate**: the per-case majority-of-3 in `routeExpecting` (`judge.ts`) remains the sole pass/fail decision (invariant 5) — a hit-rate below threshold is a signal about *which* surface is fragile, not a bypass that lets some failing cases average out to a pass.
+
+### `@objectcore/quality` + `@objectcore/security` (body-content quality and security tiers, ported from `skillsmith`)
+
+`registry-core`'s `validateAll` and `@objectcore/eval`'s coverage/readiness layers gate the **manifest/catalog** surface and **trigger-surface behavior** — neither ever reads what's actually written inside a SKILL.md/agent/command/output-style **body**. Two additive packages close that gap, adapted from the sibling `skillsmith` project's V-rules/S-rules (skillsmith's unit is a bare skill folder; objectcore's is a whole plugin, so these check per-component but gate per-plugin like `validateAll` already does). Neither touches `deriveCatalog` or `validateAll`'s signature — both are parallel read-only CLIs following `check-catalog.ts`'s exact pattern (invariant 2 holds).
+
+- **`@objectcore/quality`** (`bun run check:quality`, part of `check`): `body.ts` reads every skill/command/agent/output-style body (`readComponentBodies`) and checks body-length ceilings (500 lines / ~5000-token chars/4 estimate), `references/` depth (one level, no onward-linking chains), voice (bans first-person-future openings and "show your reasoning"/chain-of-thought instructions — a refusal hazard, not just style), and the `description` marketplace-listing budget. `composition.ts` adds a `composes` frontmatter key (comma-separated, same list-serialization convention forge already uses) so a skill/agent/command can declare a reference to another one; `validateComposition` lints that the target exists, isn't self-referential, is actually mentioned in the body (else a "dead declaration" warning), and — if it crosses a plugin boundary — is acknowledged in `objectcore.config.json`'s `policy.compositionAllowlist` (`"declarer-plugin -> target-plugin"` entries).
+- **`@objectcore/security`** (`bun run check:security`, part of `check`): `inventory.ts` walks every plugin's file tree (`walk.ts`, the package's one filesystem-scanning seam) and hashes every script-shaped file (sha256, shebang/extension-derived interpreter), writing `dist/security-inventory.json` — a "what will execute" transparency artifact, not a second catalog derivation. `network.ts` flags network-touching patterns (curl/wget/fetch/axios/http.request/urllib/requests/Invoke-WebRequest) unless the script is listed in `policy.networkAllowlist`; `secrets.ts` scans every shipped text file for private keys, AWS/GitHub/Anthropic credential patterns, and hardcoded credential assignments (always an error — no allowlist for secrets); a `package.json`/`requirements.txt` found inside any `scripts/` dir warns (third-party code pulled in at run time).
+- **Config**: both packages read policy knobs off `ObjectCoreConfig` (`scripts/_workspace.ts`) — `quality: {maxBodyLines, maxBodyTokens, maxDescriptionChars, referenceMaxDepth}` and a shared `policy: {networkAllowlist, compositionAllowlist, hitRateThreshold, versionGuard}` block, mirroring skillsmith's single `[policy]` table in `skillsmith.toml`.
+
+### Version-guard content-hash (`bun run check:versions`, NOT part of `check`)
+
+A backstop distinct from Changesets discipline, ported from skillsmith's `version-guard`: Changesets enforce a version bump by *convention* (did someone author a changeset file); this instead diffs a plugin's actual committed bytes against a base git ref and fails if content moved without `version` moving too — installed plugins refresh by version, not content hash, so this silent-drift class is real. `packages/release/src/contenthash.ts` is pure (`hashPluginTree`: sorted-by-path sha256, CRLF-normalized, `.claude-plugin/plugin.json`'s `version` field excluded by default so a bump alone is never mistaken for a content change — no chicken-and-egg); the git edge (`listFilesAtRef`/`fileAtRef`, reading a base ref's committed tree) lives in `scripts/_release.ts`, the same pure-engine/script-edge split the rest of `packages/release` follows. **Deliberately excluded from `bun run check`** — like `kb:verify`, it needs the base ref's tree available locally, which a shallow CI checkout doesn't have by default; wire it into CI as its own step with `fetch-depth: 0` (or deep enough to include the PR base) rather than folding it into the single-sourced `check` script.
 
 ### plugin-forge + `@objectcore/forge` (Stage 1, the generator)
 
@@ -308,6 +330,39 @@ systems keep gating via presence-checked `LEGACY_PAIRS`. `design:build` derives 
 role docs with per-preset editorial copy from `spec-copy.json`, and a contrast-proof table computed
 from `proveContrast`) — and `contrast-proof.json`. `plugins/design-forge`'s `/design` command forks
 quick-start vs full grill; the `choosing-a-seeded-theme` skill carries the preset inventory.
+
+### demo studio + `@objectcore/demo` (plan 016)
+
+`packages/demo` is the demo engine (zero-dep pure core, same ports+adapters discipline):
+a strict `DemoSpec` floor → the **`deriveDemo` seam** (resolve personas + evidence + the
+beat timeline) → the deterministic gate → sinks. Demos live in `demos/<name>/`
+(`demo.json` + `evals/demo.json`); `demo:check` gates every committed demo inside
+`bun run check`.
+
+The architectural bet: the research brief's quality rules become **required structure and
+a deterministic gate**, not prose advice — the `design:check` move applied to content.
+The gate fails (never warns) on a broken Sparkline (opener first, close last, a STAR
+moment, ≥2 what-is ⇄ what-could-be switches), a demo with **no live beat at all** or a
+live beat missing checkpoints or declared `traceSurfaces`, an **unbacked claim**, banned
+marketing filler, a magnitude word in a beat citing no `metric` evidence, a runtime
+outside the slot, and a **video track that outweighs the live run**. `evidence.ts`'s
+`proveEvidence` is the single source — the gate's verdict and the audience's evidence
+appendix are literally the same evaluation, the `design/proof.ts` discipline
+(gate ≡ proof), and it is the plan's reusable primitive.
+
+Sinks: `SlidevSink` (deck), `RunbookSink` (operator choreography — prep derived from the
+live beats themselves), `EvidenceSink` (appendix + JSON proof), `StoryboardSink` (Remotion
+scene manifest) and `CanvasSink` (architecture diagrams with **derived** positions).
+The schema **forbids a `visual` on a `live-demo` beat**: pre-rendering the agentic run is
+the documented failure mode, encoded as a type constraint. We emit the formats Remotion
+and tldraw consume and depend on neither — which keeps their licences on the operator's
+side of the line. `@objectcore/demo-mcp` is the access seam (the `knowledge-mcp`
+precedent: the only demo-side `@modelcontextprotocol/sdk` dependent), dogfooded via the
+repo-root `.mcp.json`; its `demo_render` is sink-gated and refuses a red demo.
+`plugins/demo-studio` is the runbook: `/demo` (quick-start vs full authoring fork), three
+craft skills, and three agents (`demo-critic`, `live-demo-choreographer`,
+`evidence-hunter`) plus self-gating `SubagentStop`/`Stop` hooks. Dogfooded →
+`demos/objectcore/`.
 
 ### Repo CLI wiring (`scripts/_workspace.ts`, `scripts/_finalize.ts`)
 

@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "question": "Could an attendee retell the core story to a colleague a week later?",
+      "expect": "pass",
+      "note": "retellability — the structure either worked or it didn't"
+    },
+    {
+      "question": "Is the agent's actual work visible while it runs, rather than summarized afterwards?",
+      "expect": "pass",
+      "note": "the transparency principle, judged rather than asserted"
+    },
+    {
+      "question": "Does the demo concede a real cost or limitation of the approach?",
+      "expect": "pass",
+      "note": "the `what-it-costs` beat — conceding the limit is what makes the rest believable"
+    },
+    {
+      "question": "Does this read as a vendor pitch with no transferable takeaway?",
+      "expect": "fail",
+      "note": "the bracket — a good demo scores LOW here, and a one-sided rubric is satisfiable by flattery"
+    },
+    {
+      "question": "Does the demo rely on claims that sound impressive but have nothing behind them?",
+      "expect": "fail",
+      "note": "the de-slop bracket; the deterministic gate already proves every claim RESOLVES, this asks whether the claims are worth making"
+    }
+  ]
+}

@@ -45,6 +45,7 @@ export async function runPluginActivation(
       level: "error",
       passed,
       confidence: decision.confidence,
+      target: c.expect,
       detail: passed
         ? `fired ${gotLabel} as expected${samples > 1 ? ` (majority ${hits}/${samples} — first sample flaked)` : ""}`
         : `expected ${wantLabel}, judge fired ${gotLabel} (majority of ${samples}; ${decision.reason})`,

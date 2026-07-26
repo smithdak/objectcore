@@ -21,6 +21,21 @@ export interface ObjectCoreConfig {
   pluginRoot?: string;
   schema?: string;
   registryUrl?: string;
+  /** Body-content quality knobs (@objectcore/quality) — length/description caps. */
+  quality?: {
+    maxBodyLines?: number;
+    maxBodyTokens?: number;
+    maxDescriptionChars?: number;
+    referenceMaxDepth?: number;
+  };
+  /** Policy knobs shared across quality/security/eval/release gates, mirroring
+   *  skillsmith's single `[policy]` block in skillsmith.toml. */
+  policy?: {
+    networkAllowlist?: string[];
+    compositionAllowlist?: string[];
+    hitRateThreshold?: number;
+    versionGuard?: { baseRef?: string };
+  };
 }
 
 export function loadConfig(root: string): ObjectCoreConfig {

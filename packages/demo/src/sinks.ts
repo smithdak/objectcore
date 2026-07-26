@@ -1,0 +1,394 @@
+// Sink adapters. The port is `DemoSink`: it serializes a derived demo into an
+// output artifact (the analogue of registry-core's `CatalogSink` and design's
+// `TokenSink`). Every sink reads the SAME `DemoOutput`, which is what keeps the
+// deck, the runbook, and the evidence appendix from drifting apart.
+//
+//   - `SlidevSink`  → `deck.md`, a Slidev presentation (Markdown; Slidev owns the
+//                     PDF/PPTX/PNG export, so we never write a second exporter).
+//   - `RunbookSink` → `runbook.md`, the operator's live-demo choreography: prep,
+//                     cue sheet, the human-in-the-loop checkpoints, the fallback,
+//                     and the deliberate recoverable failure. This artifact is the
+//                     one that makes a demo genuinely live instead of a reel.
+//   - `StoryboardSink` → `storyboard.json`, the Remotion scene manifest for the
+//                     framing beats only (never the live run).
+//   - `CanvasSink`  → `canvas.json`, architecture diagrams with derived positions.
+//   - `EvidenceSink` → `evidence.md` + `evidence-proof.json`, the claims→sources
+//                     appendix. It renders `proveEvidence`'s rows — the SAME rows
+//                     `checkEvidence` gates on — so the handout and the gate are
+//                     one evaluation (design's ProofSink discipline).
+//
+// The core stays hand-rolled + zero-dep: each adapter emits the format a downstream
+// tool consumes; we never depend on the tool itself. Pure; never throws.
+
+import type { DemoOutput, DerivedBeat } from "./derive";
+import type { BeatKind } from "./spec";
+import { evidenceCoverage, proveEvidence } from "./evidence";
+import { buildStoryboard } from "./storyboard";
+import type { StoryboardOptions } from "./storyboard";
+
+export interface SinkFile {
+  path: string;
+  content: string;
+}
+
+export interface DemoSink {
+  emit(output: DemoOutput): SinkFile[];
+}
+
+/** `615` → `10:15`. Cue sheets are read under stage lights; seconds are useless. */
+export function clock(totalSec: number): string {
+  const sec = Math.max(0, Math.round(totalSec));
+  const mm = Math.floor(sec / 60);
+  const ss = sec % 60;
+  return `${mm}:${String(ss).padStart(2, "0")}`;
+}
+
+/** Human labels for the beat vocabulary — used in cue sheets and speaker notes so
+ *  the operator can see the Sparkline they are walking, not just slide titles. */
+const KIND_LABEL: Record<BeatKind, string> = {
+  "opener": "Opener",
+  "what-is": "What is",
+  "what-could-be": "What could be",
+  "live-demo": "LIVE",
+  "star": "STAR moment",
+  "tell-show-tell": "Tell–show–tell",
+  "close": "Close",
+};
+
+const SLIDE_BREAK = "\n\n---\n\n";
+
+/** Escape the YAML-ish scalars we write into Slidev frontmatter. */
+function yamlString(v: string): string {
+  return JSON.stringify(v);
+}
+
+// ── Slidev ───────────────────────────────────────────────────────────────────
+
+export interface SlidevSinkOptions {
+  /** Slidev theme name for the deck frontmatter. */
+  theme?: string;
+  path?: string;
+}
+
+/** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline — the
+ *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
+export class SlidevSink implements DemoSink {
+  constructor(private readonly opts: SlidevSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const { spec } = output;
+    const theme = this.opts.theme ?? "default";
+
+    const head = [
+      "---",
+      `theme: ${theme}`,
+      `title: ${yamlString(spec.title)}`,
+      `info: ${yamlString(spec.brief)}`,
+      "---",
+      "",
+      `# ${spec.title}`,
+      "",
+      spec.brief,
+      "",
+      `<!-- Derived by @objectcore/demo from ${spec.name}. Do not hand-edit: re-run \`bun run demo:build\`. -->`,
+    ].join("\n");
+
+    const slides = output.beats.map((b) => this.slide(b));
+
+    const closing = [
+      "# Take this with you",
+      "",
+      spec.takeaway,
+      "",
+      "<!--",
+      "The transferable takeaway is a required field of the spec, not a courtesy slide:",
+      "a demo that leaves nothing behind is a vendor pitch.",
+      "-->",
+    ].join("\n");
+
+    return [{ path: this.opts.path ?? "deck.md", content: [head, ...slides, closing].join(SLIDE_BREAK) + "\n" }];
+  }
+
+  private slide(b: DerivedBeat): string {
+    const { beat } = b;
+    const lines: string[] = [`# ${beat.title}`, ""];
+
+    if (beat.kind === "live-demo" && beat.live) {
+      lines.push(`> Live — \`${beat.live.repo}\``, "", beat.live.task, "");
+      if (beat.live.traceSurfaces?.length) {
+        lines.push("What you can see the whole time:", "");
+        for (const surface of beat.live.traceSurfaces) lines.push(`- ${surface}`);
+        lines.push("");
+      }
+    }
+
+    for (const claim of b.claims) {
+      const refs = claim.evidence.map((e) => `\`${e.id}\``).join(", ");
+      lines.push(`- ${claim.text}${refs ? ` <sup>${refs}</sup>` : ""}`);
+    }
+    if (b.claims.length) lines.push("");
+
+    // Speaker notes: narration plus the beat's place in the arc and on the clock.
+    lines.push(
+      "<!--",
+      `${KIND_LABEL[beat.kind]} · ${clock(b.startSec)}–${clock(b.endSec)}` +
+        (b.persona ? ` · for ${b.persona.title}: ${b.persona.cares}` : ""),
+    );
+    if (beat.narration) lines.push("", beat.narration);
+    lines.push("-->");
+
+    return lines.join("\n");
+  }
+}
+
+// ── Runbook ──────────────────────────────────────────────────────────────────
+
+export interface RunbookSinkOptions {
+  path?: string;
+}
+
+/** Emits the operator's live-demo runbook: what to set up, what to say when, and —
+ *  for every live beat — the checkpoints to stop at, the failure to let happen, and
+ *  the fallback to cut to. Derived from the same output as the deck, so the cue
+ *  times in this document can never disagree with the slides. */
+export class RunbookSink implements DemoSink {
+  constructor(private readonly opts: RunbookSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const { spec } = output;
+    const live = output.beats.filter((b) => b.beat.kind === "live-demo");
+
+    const lines: string[] = [
+      `# Runbook — ${spec.title}`,
+      "",
+      `_Derived by \`@objectcore/demo\` from \`${spec.name}\`. Do not hand-edit._`,
+      "",
+      `**Planned:** ${clock(output.totalSec)} against a ${clock(spec.targetDurationSec)} slot · ` +
+        `${output.beats.length} beats · ${live.length} live.`,
+      "",
+      "## Before you walk on",
+      "",
+    ];
+
+    // Prep is derived from the live beats themselves — never a static checklist,
+    // or it drifts from the demo it is supposed to protect.
+    if (live.length === 0) {
+      lines.push("- (No live beats. The gate should have caught this.)", "");
+    } else {
+      for (const b of live) {
+        const l = b.beat.live!;
+        lines.push(
+          `- Clone and warm \`${l.repo}\`; run the task once end to end today.`,
+          `- Stage the fallback for **${b.beat.title}**: ${l.fallback}`,
+        );
+      }
+      lines.push(
+        "- Confirm every trace surface is visible at the back of the room.",
+        "- Decide who calls the cut to fallback, and what the cue word is.",
+        "",
+      );
+    }
+
+    lines.push("## Cue sheet", "", "| Cue | Beat | Arc | For |", "|---|---|---|---|");
+    for (const b of output.beats) {
+      const who = b.persona ? b.persona.title : "—";
+      lines.push(`| ${clock(b.startSec)} | ${b.beat.title} | ${KIND_LABEL[b.beat.kind]} | ${who} |`);
+    }
+    lines.push("");
+
+    for (const b of output.beats) {
+      lines.push(...this.beatSection(b));
+    }
+
+    lines.push("## Leave behind", "", spec.takeaway, "");
+
+    return [{ path: this.opts.path ?? "runbook.md", content: lines.join("\n") }];
+  }
+
+  private beatSection(b: DerivedBeat): string[] {
+    const { beat } = b;
+    const lines: string[] = [
+      `## ${clock(b.startSec)} — ${beat.title}`,
+      "",
+      `_${KIND_LABEL[beat.kind]} · ${clock(beat.durationSec)}_` +
+        (b.persona ? ` · answers **${b.persona.title}**: ${b.persona.cares}` : ""),
+      "",
+    ];
+
+    if (beat.narration) lines.push(beat.narration, "");
+
+    for (const claim of b.claims) {
+      const refs = claim.evidence.map((e) => `${e.id} → ${e.ref}`).join("; ");
+      lines.push(`- **Claim:** ${claim.text}`, `  - **Backed by:** ${refs || "(unresolved)"}`);
+    }
+    if (b.claims.length) lines.push("");
+
+    if (beat.kind === "live-demo" && beat.live) {
+      const l = beat.live;
+      lines.push(
+        "### Live choreography",
+        "",
+        `**Repo:** \`${l.repo}\``,
+        "",
+        `**Task, as typed:** ${l.task}`,
+        "",
+        "**Stop here (human in the loop — these are a feature, show them):**",
+        "",
+      );
+      for (const c of l.checkpoints) lines.push(`- [ ] ${c}`);
+      lines.push("");
+      if (l.expectedFailure) {
+        lines.push(
+          "**Let this fail:**",
+          "",
+          l.expectedFailure,
+          "",
+          "Do not rescue it early. The recovery is the credibility.",
+          "",
+        );
+      }
+      lines.push(`**If it dies:** ${l.fallback}`, "");
+    }
+
+    return lines;
+  }
+}
+
+// ── Evidence appendix ────────────────────────────────────────────────────────
+
+export interface EvidenceSinkOptions {
+  /** Emit the machine-readable proof alongside the markdown. Default true. */
+  json?: boolean;
+  path?: string;
+  jsonPath?: string;
+}
+
+/** Emits the claims→sources appendix from `proveEvidence`'s rows. The audience's
+ *  handout and the gate's verdict are literally the same evaluation — so a demo
+ *  cannot ship an appendix that flatters a claim the gate rejected. */
+export class EvidenceSink implements DemoSink {
+  constructor(private readonly opts: EvidenceSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const entries = proveEvidence(output);
+    const coverage = evidenceCoverage(output);
+
+    const lines: string[] = [
+      `# Evidence — ${output.spec.title}`,
+      "",
+      `_Derived by \`@objectcore/demo\`. Every claim made on stage, and what backs it._`,
+      "",
+      `**Backed:** ${entries.filter((e) => e.pass).length}/${entries.length} claims ` +
+        `(${(coverage * 100).toFixed(0)}%).`,
+      "",
+      "| Beat | Claim | Backed by | Status |",
+      "|---|---|---|---|",
+    ];
+
+    for (const e of entries) {
+      const backing = e.evidence.map((i) => `\`${i.id}\` (${i.kind}) — ${i.ref}`).join("<br>")
+        || (e.missing.length ? `unresolved: ${e.missing.join(", ")}` : "—");
+      lines.push(`| ${e.beatTitle} | ${e.claim} | ${backing} | ${e.pass ? "backed" : "UNBACKED"} |`);
+    }
+    lines.push("");
+
+    if (output.unusedEvidence.length) {
+      lines.push("## Registered but unused", "");
+      for (const item of output.unusedEvidence) {
+        lines.push(`- \`${item.id}\` (${item.kind}) — ${item.ref}`);
+      }
+      lines.push("");
+    }
+
+    const files: SinkFile[] = [{ path: this.opts.path ?? "evidence.md", content: lines.join("\n") }];
+
+    if (this.opts.json !== false) {
+      files.push({
+        path: this.opts.jsonPath ?? "evidence-proof.json",
+        content: JSON.stringify({ demo: output.spec.name, coverage, entries }, null, 2) + "\n",
+      });
+    }
+
+    return files;
+  }
+}
+
+// ── Storyboard (Remotion / remocn) ───────────────────────────────────────────
+
+export interface StoryboardSinkOptions extends StoryboardOptions {
+  path?: string;
+}
+
+/** Emits `storyboard.json` — a Remotion scene manifest (component name, props, and
+ *  `Sequence` frame ranges) for a user's own Remotion project to consume. We emit the
+ *  format the tool reads and never depend on the tool itself, exactly as the design
+ *  engine emits Tailwind and Style Dictionary config without depending on either.
+ *  That also keeps this side of the line free of Remotion's source-available license:
+ *  the manifest is ours, the renderer is the user's. */
+export class StoryboardSink implements DemoSink {
+  constructor(private readonly opts: StoryboardSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const board = buildStoryboard(output, this.opts);
+    return [{
+      path: this.opts.path ?? "storyboard.json",
+      content: JSON.stringify(
+        {
+          demo: output.spec.name,
+          fps: board.fps,
+          totalFrames: board.totalFrames,
+          // Stated so a consumer sees the boundary rather than rediscovering it:
+          // the live beat is deliberately absent from the video track.
+          note:
+            "Scenes cover the framing beats only. The live agentic run is never " +
+            "pre-rendered — rendering it would reproduce the opaque-reel failure mode.",
+          scenes: board.scenes,
+        },
+        null,
+        2,
+      ) + "\n",
+    }];
+  }
+}
+
+// ── Architecture canvas (tldraw) ─────────────────────────────────────────────
+
+export interface CanvasSinkOptions extends StoryboardOptions {
+  path?: string;
+}
+
+/** Emits `canvas.json` — the architecture diagrams with DERIVED positions, one entry
+ *  per canvas beat.
+ *
+ *  Deliberately a neutral node/edge/position document rather than a native `.tldr`
+ *  file: tldraw's on-disk record schema is versioned and changes between releases, and
+ *  this package has no way to verify the current shape offline. Emitting a documented
+ *  intermediate that a thin importer maps onto the editor's `createShapes` API is
+ *  honest about what we know; claiming native-format conformance would not be.
+ *  (Verify against the live tldraw schema before writing that importer.) */
+export class CanvasSink implements DemoSink {
+  constructor(private readonly opts: CanvasSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const board = buildStoryboard(output, this.opts);
+    if (board.canvases.length === 0) return [];
+
+    return [{
+      path: this.opts.path ?? "canvas.json",
+      content: JSON.stringify(
+        {
+          demo: output.spec.name,
+          format: "objectcore-demo-canvas@1",
+          canvases: board.canvases.map((c) => ({
+            beatId: c.beatId,
+            beatTitle: c.beatTitle,
+            nodes: c.nodes,
+            edges: c.edges,
+          })),
+        },
+        null,
+        2,
+      ) + "\n",
+    }];
+  }
+}

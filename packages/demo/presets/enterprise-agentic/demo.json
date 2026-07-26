@@ -1,0 +1,146 @@
+{
+  "name": "enterprise-agentic",
+  "title": "Agentic engineering, with the work visible",
+  "brief": "Show a senior technical audience what an agent does to a real delivery pipeline, with its planning, tool calls, and failures on screen the whole time.",
+  "targetDurationSec": 1200,
+  "audience": [
+    {
+      "id": "principal-architect",
+      "title": "Principal architect",
+      "cares": "Whether this survives contact with a real codebase and a real review process."
+    },
+    {
+      "id": "eng-director",
+      "title": "Engineering director",
+      "cares": "Cycle time and defect escape rate, not model benchmarks."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "transparency-principle",
+      "kind": "source",
+      "ref": "https://www.anthropic.com/engineering/building-effective-agents",
+      "note": "\"Prioritize transparency by explicitly showing the agent's planning steps.\""
+    },
+    {
+      "id": "gate-output",
+      "kind": "artifact",
+      "ref": "the eval gate's structured output, shown on screen during the live beat"
+    },
+    {
+      "id": "live-run",
+      "kind": "demo",
+      "ref": "demonstrated live in the refund-flow beat"
+    },
+    {
+      "id": "review-time",
+      "kind": "metric",
+      "ref": "your own DORA/review-latency dashboard — replace this ref before you present"
+    }
+  ],
+  "beats": [
+    {
+      "id": "cold-open",
+      "kind": "opener",
+      "title": "The pull request nobody read",
+      "persona": "principal-architect",
+      "durationSec": 70,
+      "narration": "A pull request from last quarter. Nine hundred lines, two approvals, four minutes between the first review and the merge. Everyone here has approved one of these, and everyone here knows what that approval was worth."
+    },
+    {
+      "id": "where-time-goes",
+      "kind": "what-is",
+      "title": "Where the time actually goes",
+      "persona": "eng-director",
+      "durationSec": 140,
+      "narration": "Typing was never the bottleneck. The wait is: waiting for review, waiting for CI, waiting for the rework that follows both.",
+      "claims": [
+        {
+          "text": "Review latency and rework dominate our measured cycle time.",
+          "evidence": ["review-time"]
+        }
+      ]
+    },
+    {
+      "id": "the-shift",
+      "kind": "what-could-be",
+      "title": "An agent that shows its work",
+      "durationSec": 140,
+      "narration": "The interesting change is not that a model writes code. It is that the work becomes inspectable while it is happening, instead of arriving as a finished diff you have to reverse-engineer.",
+      "claims": [
+        {
+          "text": "Showing the agent's planning steps is a stated design principle for reliable agents, not a presentation preference.",
+          "evidence": ["transparency-principle"]
+        }
+      ]
+    },
+    {
+      "id": "live-build",
+      "kind": "live-demo",
+      "title": "Adding an idempotent refund, live",
+      "persona": "principal-architect",
+      "durationSec": 400,
+      "narration": "Real repository, real task, and you watch every tool call it makes. I am going to stop it twice, and one of those stops is going to be because it got something wrong.",
+      "claims": [
+        {
+          "text": "The gate blocks the change until its checks pass — including the one it is about to fail.",
+          "evidence": ["gate-output", "live-run"]
+        }
+      ],
+      "live": {
+        "repo": "REPLACE ME — a real repository your audience would recognize as real",
+        "task": "Add refunds with idempotency so a double-submit cannot double-refund, handle multiple currencies, and write an audit-log entry per refund.",
+        "fallback": "A recorded pass of this exact task on a local branch, cued to the plan step, cut to on the word \"meanwhile\".",
+        "checkpoints": [
+          "Approve the plan before a single file is written.",
+          "Read the diff together before the gate runs.",
+          "Decide as a room whether the failing edge case ships or blocks."
+        ],
+        "expectedFailure": "The double-submit case is not covered on the first pass. Let the gate go red on stage, read the failure out loud, and fix it in front of them.",
+        "traceSurfaces": [
+          "the plan step list",
+          "every tool call as it is made",
+          "the subagent handoff",
+          "the red gate output"
+        ]
+      }
+    },
+    {
+      "id": "what-it-didnt-fix",
+      "kind": "what-is",
+      "title": "What it did not solve",
+      "persona": "eng-director",
+      "durationSec": 100,
+      "narration": "It did not remove the review. It moved the review earlier, to a point where acting on it is cheap. The judgement is still yours, and so is the accountability."
+    },
+    {
+      "id": "compounding",
+      "kind": "what-could-be",
+      "title": "The part that compounds",
+      "durationSec": 140,
+      "narration": "Every failure the gate catches gets written back as a lesson the next run reads. The second time this team hits that edge case, the agent already knows about it.",
+      "claims": [
+        {
+          "text": "Gate failures are captured as durable, searchable lessons rather than rediscovered.",
+          "evidence": ["gate-output"]
+        }
+      ]
+    },
+    {
+      "id": "the-moment",
+      "kind": "star",
+      "title": "It went red on stage, and that was the point",
+      "durationSec": 60,
+      "narration": "You watched it fail. That is the only reason you should believe the parts where it succeeded."
+    },
+    {
+      "id": "close",
+      "kind": "close",
+      "title": "Take the harness, not the demo",
+      "persona": "principal-architect",
+      "durationSec": 110,
+      "narration": "Nothing you saw is a prototype built for this room. It is checked in. Clone it on the way out and point it at something you already own."
+    }
+  ],
+  "takeaway": "The instructions file, the subagent definitions, and the eval-gate configuration used in this demo — checked in and runnable against your own repository today."
+}
