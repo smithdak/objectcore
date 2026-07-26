@@ -21,11 +21,23 @@ describe("SlidevSink", () => {
     expect(files[0]!.path).toBe("deck.md");
 
     const deck = files[0]!.content;
-    expect(deck.startsWith("---\ntheme: default\n")).toBe(true);
+    expect(deck.startsWith("---\ntheme: none\n")).toBe(true);
 
     // title slide + one per beat + the takeaway slide
     const slides = deck.split("\n\n---\n\n");
     expect(slides).toHaveLength(validDemo().beats.length + 2);
+  });
+
+  // Found by actually opening a generated deck: Slidev's `default` theme is a separate
+  // npm package the CLI offers to install INTERACTIVELY, so a generated deck opened by a
+  // script or in CI dies with "cannot prompt for installation". `none` is built in.
+  test("defaults to a built-in theme so the deck opens with no install step", () => {
+    expect(new SlidevSink().emit(derived())[0]!.content).toContain("\ntheme: none\n");
+  });
+
+  test("an explicit theme still wins", () => {
+    expect(new SlidevSink({ theme: "seriph" }).emit(derived())[0]!.content)
+      .toContain("\ntheme: seriph\n");
   });
 
   test("renders every claim with its evidence ref (never a bare assertion)", () => {

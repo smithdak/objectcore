@@ -65,10 +65,18 @@ function yamlString(v: string): string {
 // ── Slidev ───────────────────────────────────────────────────────────────────
 
 export interface SlidevSinkOptions {
-  /** Slidev theme name for the deck frontmatter. */
+  /** Slidev theme name for the deck frontmatter. Defaults to `none` — see below. */
   theme?: string;
   path?: string;
 }
+
+/** Slidev's `default` theme is a separate npm package (`@slidev/theme-default`) that
+ *  the CLI offers to install interactively. A GENERATED deck is usually opened
+ *  non-interactively (CI, a script, an agent), where that prompt cannot be answered
+ *  and Slidev exits with "the theme was not found and cannot prompt for installation".
+ *  `none` is built in, so the emitted deck runs with no install step at all. Callers
+ *  who want a themed deck pass `theme` explicitly and take on installing it. */
+const DEFAULT_SLIDEV_THEME = "none";
 
 /** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline — the
  *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
@@ -77,7 +85,7 @@ export class SlidevSink implements DemoSink {
 
   emit(output: DemoOutput): SinkFile[] {
     const { spec } = output;
-    const theme = this.opts.theme ?? "default";
+    const theme = this.opts.theme ?? DEFAULT_SLIDEV_THEME;
 
     const head = [
       "---",
