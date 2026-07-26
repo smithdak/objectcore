@@ -147,3 +147,33 @@ describe("figure archetype validation", () => {
     expect(errors(spec)[0]!.path).toContain("columns[0].points");
   });
 });
+
+describe("palette selection", () => {
+  const spec = () => ({ ...validDemo(), designSystem: "inkwell", designTheme: "paper" });
+
+  test("a theme may be pinned alongside a system", () => {
+    expect(errors(spec() as DemoSpec)).toEqual([]);
+  });
+
+  test("a theme without a system is rejected — a theme belongs to one", () => {
+    const s = { ...validDemo(), designTheme: "paper" } as DemoSpec;
+    const found = errors(s);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.message).toContain("set `designSystem` too");
+  });
+
+  test("both fields must be non-empty strings when present", () => {
+    expect(errors({ ...validDemo(), designSystem: "x", designTheme: "  " } as DemoSpec))
+      .toHaveLength(1);
+  });
+
+  // The CLI resolves the theme to CSS; the sink only ever sees a string, which is what
+  // keeps @objectcore/demo independent of the design engine.
+  test("the sink takes CSS, not a design system", () => {
+    const css = new SlidevSink({ css: ":root { --bg-base: #fefdfb; }" })
+      .emit(deriveDemo(validDemo()))
+      .find((f) => f.path === "style.css")!.content;
+    expect(css).toContain("--bg-base: #fefdfb");
+    expect(css.indexOf("#fefdfb")).toBeLessThan(css.indexOf(".slidev-layout h1"));
+  });
+});

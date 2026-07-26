@@ -1,0 +1,97 @@
+{
+  "resolutionOrder": [
+    "primitives",
+    "shared",
+    "theme"
+  ],
+  "modifiers": [
+    {
+      "name": "theme",
+      "contexts": {
+        "glass": [
+          "semantic-glass"
+        ],
+        "daylight": [
+          "semantic-daylight"
+        ],
+        "terminal": [
+          "semantic-terminal"
+        ],
+        "blueprint": [
+          "semantic-blueprint"
+        ],
+        "ledger": [
+          "semantic-ledger"
+        ],
+        "manila": [
+          "semantic-manila"
+        ],
+        "litmus": [
+          "semantic-litmus"
+        ],
+        "sonar": [
+          "semantic-sonar"
+        ],
+        "redline": [
+          "semantic-redline"
+        ]
+      }
+    }
+  ],
+  "themes": [
+    {
+      "name": "glass",
+      "context": {
+        "theme": "glass"
+      }
+    },
+    {
+      "name": "daylight",
+      "context": {
+        "theme": "daylight"
+      }
+    },
+    {
+      "name": "terminal",
+      "context": {
+        "theme": "terminal"
+      }
+    },
+    {
+      "name": "blueprint",
+      "context": {
+        "theme": "blueprint"
+      }
+    },
+    {
+      "name": "ledger",
+      "context": {
+        "theme": "ledger"
+      }
+    },
+    {
+      "name": "manila",
+      "context": {
+        "theme": "manila"
+      }
+    },
+    {
+      "name": "litmus",
+      "context": {
+        "theme": "litmus"
+      }
+    },
+    {
+      "name": "sonar",
+      "context": {
+        "theme": "sonar"
+      }
+    },
+    {
+      "name": "redline",
+      "context": {
+        "theme": "redline"
+      }
+    }
+  ]
+}

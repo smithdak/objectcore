@@ -3,7 +3,7 @@
   "title": "From engineer to organization",
   "brief": "Show a delivery-accountable audience how one engineer's accumulated workflows became an operating layer \u2014 and why the durable asset is encoded judgement rather than generated code.",
   "targetDurationSec": 1500,
-  "designSystem": "objectcore",
+  "designSystem": "inkwell",
   "audience": [
     {
       "id": "delivery-principal",
@@ -373,5 +373,6 @@
       "narration": "Do not try to build the operating layer. Pick the one workflow your team repeats every week, encode the context it keeps needing, and make its verification mechanical. Then do the next one."
     }
   ],
-  "takeaway": "The plan and acceptance-criteria templates, the three verification roles, and the evidence layout used in this demo \u2014 enough to encode one repeated workflow of your own this week."
+  "takeaway": "The plan and acceptance-criteria templates, the three verification roles, and the evidence layout used in this demo \u2014 enough to encode one repeated workflow of your own this week.",
+  "designTheme": "paper"
 }

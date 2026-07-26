@@ -29,7 +29,7 @@ const EVIDENCE_KIND_SET = new Set<string>(EVIDENCE_KINDS);
 
 const SPEC_KEYS = new Set([
   "name", "title", "brief", "targetDurationSec", "audience",
-  "evidence", "beats", "takeaway", "designSystem",
+  "evidence", "beats", "takeaway", "designSystem", "designTheme",
 ]);
 const PERSONA_KEYS = new Set(["id", "title", "cares"]);
 const EVIDENCE_KEYS = new Set(["id", "kind", "ref", "note"]);
@@ -79,6 +79,12 @@ export function validateDemoSpec(input: unknown): DemoIssue[] {
   }
   if (input.designSystem !== undefined && !isNonEmptyString(input.designSystem)) {
     err("designSystem", "`designSystem` must be a non-empty string when present");
+  }
+  if (input.designTheme !== undefined && !isNonEmptyString(input.designTheme)) {
+    err("designTheme", "`designTheme` must be a non-empty string when present");
+  }
+  if (input.designTheme !== undefined && input.designSystem === undefined) {
+    err("designTheme", "`designTheme` names a theme OF a system — set `designSystem` too");
   }
 
   if (typeof input.targetDurationSec !== "number" || !Number.isFinite(input.targetDurationSec)

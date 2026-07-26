@@ -230,4 +230,11 @@ export interface DemoSpec {
   takeaway: string;
   /** Optional `design/<name>` system to style the deck with (plan 012/014 systems). */
   designSystem?: string;
+  /** Which THEME of that system to present in — `paper`, `nocturne`, `terminal`, ...
+   *  A seeded preset ships several (inkwell has six, cathode nine), and a deck is
+   *  given in one of them, not in "whichever the CSS happens to declare first". When
+   *  set, that palette is pinned for the whole deck: the viewer's light/dark toggle
+   *  does not override a palette the author chose deliberately. Absent ⇒ the system's
+   *  own default, and the toggle behaves normally. */
+  designTheme?: string;
 }

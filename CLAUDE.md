@@ -370,6 +370,13 @@ failure lands and recovers). Scenes are pure functions of `useCurrentFrame()`, a
 storyboard gate lints — the rule holds on both sides of the seam. Remotion is free for
 individuals and companies of up to three people; the repo ships no licence key and
 `demo:render` runs the operator's own local install.
+**Palette variants** are design systems, not a parallel mechanism: a demo names a
+`designSystem` and optionally one `designTheme` of it (`inkwell/paper` for warm
+editorial, `cathode/terminal` for green-on-glass, ...). `demo-build.ts` resolves the
+chosen theme's own token JSON into `:root` custom properties — `tokens.css` puts every
+non-default theme behind `[data-theme="x"]`, a selector no Slidev deck sets, so a deck
+asking for `nocturne` would silently present in `paper`. A pinned theme also wins under
+`html.dark`: a palette the author chose should not flip with the viewer's toggle.
 `plugins/demo-studio` is the runbook: `/demo` (quick-start vs full authoring fork), three
 craft skills, and three agents (`demo-critic`, `live-demo-choreographer`,
 `evidence-hunter`) plus self-gating `SubagentStop`/`Stop` hooks. Dogfooded →
