@@ -190,7 +190,7 @@ const BASE_CSS = [
   "  max-width: 15ch;",
   "  margin-bottom: 2.4rem;",
   "}",
-  ".slidev-layout.two-cols h1 { font-size: 2.2rem; max-width: 15ch; margin-bottom: 1.4rem; }",
+  ".slidev-layout.two-columns h1 { font-size: 1.85rem; max-width: 14ch; margin-bottom: 1.2rem; line-height: 1.12; }",
   ".slidev-layout p, .slidev-layout li { font-size: 1.24rem; line-height: 1.6; }",
   "",
   "/* arc label */",
@@ -262,9 +262,9 @@ const BASE_CSS = [
   "}",
   ".demo-live { padding-top: 2.4rem; }",
   ".demo-repo { color: var(--demo-muted); font-size: 0.82rem; margin-top: 0.9rem; letter-spacing: 0.01em; }",
-  ".slidev-layout.two-cols li { font-size: 1.02rem; margin-bottom: 0.8rem; max-width: 32ch; }",
-  ".demo-claims { margin-top: 1.6rem; border-top: 1px solid var(--demo-border); padding-top: 1.1rem; }",
-  ".demo-claims li { font-size: 0.94rem; color: var(--demo-muted); }",
+  ".slidev-layout.two-columns li { font-size: 1rem; margin-bottom: 0.72rem; max-width: 30ch; line-height: 1.5; }",
+  ".slidev-layout.two-columns { padding-bottom: 5.5rem; column-gap: 3.5rem; }",
+  ".slidev-layout.two-columns .demo-live { font-size: 0.8rem; padding: 2.2rem 1rem 1rem; }",
   "",
   "/* motion */",
   "@keyframes demoRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }",
@@ -565,9 +565,11 @@ export class SlidevSink implements DemoSink {
       reveal && items.length > 1 ? ["<v-clicks>", "", ...items, "", "</v-clicks>"] : items;
 
     if (isLive) {
-      // RIGHT column: what stays visible while it runs, then the claims. `::right::`
-      // sends everything after it to the right column, so ordering is the layout.
-      // The left column keeps only the task — stacking claims there overflowed.
+      // RIGHT column: what stays visible while it runs. Claims are deliberately NOT
+      // on this slide — the room is about to watch the thing itself, so the slide is a
+      // holding frame, not a page of text. They stay in the speaker notes and the
+      // evidence appendix, which is where a claim is actually checked. Putting them
+      // here overflowed the column and collided with the footer.
       lines.push(
         "::right::",
         "",
@@ -577,9 +579,6 @@ export class SlidevSink implements DemoSink {
       // No wrapper div: a markdown list inside a raw HTML block is not parsed.
       const traces = (beat.live!.traceSurfaces ?? []).map((t) => `- ${t}`);
       lines.push(...clicked(traces), "");
-      if (claimLines.length) {
-        lines.push('<div class="demo-claims">', "", ...clicked(claimLines), "", "</div>", "");
-      }
     } else if (claimLines.length) {
       lines.push(...clicked(claimLines), "");
     }
@@ -603,6 +602,18 @@ export class SlidevSink implements DemoSink {
         (b.persona ? ` · for ${b.persona.title}: ${b.persona.cares}` : ""),
     );
     if (beat.narration) lines.push("", beat.narration);
+
+    // A live slide deliberately shows no claims, so the presenter would otherwise lose
+    // them entirely. They belong in the notes, with their sources spelled out — this is
+    // the one place the operator reads mid-demo.
+    if (isLive && b.claims.length) {
+      lines.push("", "Claims to make while it runs:");
+      for (const claim of b.claims) {
+        const refs = claim.evidence.map((e) => `${e.id} → ${e.ref}`).join("; ");
+        lines.push(`  - ${claim.text} [${refs || "unresolved"}]`);
+      }
+    }
+
     lines.push("-->");
 
     return lines.join("\n");

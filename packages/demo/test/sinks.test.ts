@@ -50,8 +50,24 @@ describe("SlidevSink", () => {
     const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("Rework and review latency dominate our measured cycle time.");
     expect(deck).toContain('<span class="demo-ref">1</span>');
-    // the live beat cites two sources on one claim
-    expect(deck).toContain('<span class="demo-ref">1,2</span>');
+  });
+
+  // The room is about to watch the thing itself, so the live slide is a holding
+  // frame: the task and what stays visible, nothing else. Its claims live in the
+  // speaker notes and the evidence appendix, where a claim is actually checked.
+  test("the live slide carries no claims", () => {
+    const deck = deckOf(new SlidevSink().emit(derived()));
+    const chunk = deck.split(/\n---\nlayout: /).find((c) => c.startsWith("two-cols"))!;
+    // The body is everything before the speaker-note comment.
+    const body = chunk.slice(0, chunk.indexOf("<!--"));
+    const notes = chunk.slice(chunk.indexOf("<!--"));
+
+    expect(body).toContain("On screen throughout");
+    expect(body).not.toContain("The gate blocks the change");
+    // ...but the presenter keeps it, with its sources spelled out.
+    expect(notes).toContain("Claims to make while it runs:");
+    expect(notes).toContain("The gate blocks the change");
+    expect(notes).toContain("dist/eval-evidence.json");
   });
 
   test("a claim with no backing renders no marker", () => {
