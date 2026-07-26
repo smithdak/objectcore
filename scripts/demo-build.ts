@@ -1,6 +1,7 @@
 // `bun run demo:build [<name>]` — derive every committed demo's output views into
 // `dist/demos/<name>/` (gitignored build artifacts, like the design engine's views):
-// the Slidev deck, the operator runbook, and the evidence appendix + its JSON proof.
+// the Slidev deck, the operator runbook, the evidence appendix + its JSON proof, and
+// (when the demo declares visuals) the Remotion storyboard and architecture canvases.
 //
 // Build refuses to emit a demo the gate rejects. That is the point of putting the
 // gate under the sinks: an unbacked claim cannot reach a slide by way of a build.
@@ -16,6 +17,8 @@ import {
   SlidevSink,
   RunbookSink,
   EvidenceSink,
+  StoryboardSink,
+  CanvasSink,
   type DemoSink,
 } from "@objectcore/demo";
 
@@ -37,7 +40,15 @@ if (targets.length === 0) {
   process.exit(0);
 }
 
-const sinks: DemoSink[] = [new SlidevSink(), new RunbookSink(), new EvidenceSink()];
+const sinks: DemoSink[] = [
+  new SlidevSink(),
+  new RunbookSink(),
+  new EvidenceSink(),
+  // The video track emits only when the demo declares visuals (CanvasSink returns
+  // no files otherwise), so a demo with no video costs nothing here.
+  new StoryboardSink(),
+  new CanvasSink(),
+];
 let failed = 0;
 
 for (const name of targets) {

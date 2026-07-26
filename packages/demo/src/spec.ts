@@ -103,6 +103,49 @@ export interface LiveBeat {
   traceSurfaces?: string[];
 }
 
+/** A node in an architecture canvas (the animated "watch it assemble" beat). */
+export interface CanvasNode {
+  /** kebab-case, unique within the beat. */
+  id: string;
+  label: string;
+  /** Optional layer/grouping; the layout is derived from it deterministically. */
+  group?: string;
+}
+
+export interface CanvasEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+/** The optional VISUAL treatment of a beat. Two forms, discriminated:
+ *
+ *   - `scene`  — a pre-rendered motion-graphics scene (a remocn/Remotion component
+ *                name plus JSON props), for the cinematic frame: opener, transitions,
+ *                B-roll, the closing card.
+ *   - `canvas` — an architecture diagram that assembles on screen (nodes + edges);
+ *                positions are DERIVED, never authored, so the layout is deterministic.
+ *
+ * A `live-demo` beat may NOT carry a visual, and the schema rejects it. That is the
+ * Devin lesson encoded as a type constraint rather than a warning in a doc: rendering
+ * the agentic run as video turns the substantive middle back into the opaque reel the
+ * whole approach exists to avoid. Video frames the demo; it never replaces it. */
+export type BeatVisual =
+  | {
+      kind: "scene";
+      /** Component name, e.g. "TerminalSimulator". */
+      scene: string;
+      /** Props passed to the component. JSON only — never code or expressions;
+       *  the determinism lint rejects `Math.random`/`Date.now` hiding in a string. */
+      props?: Record<string, unknown>;
+      transition?: "cut" | "fade" | "wipe" | "slide";
+    }
+  | {
+      kind: "canvas";
+      nodes: CanvasNode[];
+      edges: CanvasEdge[];
+    };
+
 /** One beat of the demo. */
 export interface Beat {
   /** kebab-case, unique within the spec. */
@@ -119,6 +162,8 @@ export interface Beat {
   claims?: Claim[];
   /** REQUIRED when `kind` is `live-demo`, forbidden otherwise. */
   live?: LiveBeat;
+  /** Optional visual treatment. FORBIDDEN on a `live-demo` beat (see BeatVisual). */
+  visual?: BeatVisual;
 }
 
 /** A complete demo. The unit `deriveDemo` turns into a deck, a runbook, an

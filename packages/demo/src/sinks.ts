@@ -9,6 +9,9 @@
 //                     cue sheet, the human-in-the-loop checkpoints, the fallback,
 //                     and the deliberate recoverable failure. This artifact is the
 //                     one that makes a demo genuinely live instead of a reel.
+//   - `StoryboardSink` → `storyboard.json`, the Remotion scene manifest for the
+//                     framing beats only (never the live run).
+//   - `CanvasSink`  → `canvas.json`, architecture diagrams with derived positions.
 //   - `EvidenceSink` → `evidence.md` + `evidence-proof.json`, the claims→sources
 //                     appendix. It renders `proveEvidence`'s rows — the SAME rows
 //                     `checkEvidence` gates on — so the handout and the gate are
@@ -20,6 +23,8 @@
 import type { DemoOutput, DerivedBeat } from "./derive";
 import type { BeatKind } from "./spec";
 import { evidenceCoverage, proveEvidence } from "./evidence";
+import { buildStoryboard } from "./storyboard";
+import type { StoryboardOptions } from "./storyboard";
 
 export interface SinkFile {
   path: string;
@@ -305,5 +310,85 @@ export class EvidenceSink implements DemoSink {
     }
 
     return files;
+  }
+}
+
+// ── Storyboard (Remotion / remocn) ───────────────────────────────────────────
+
+export interface StoryboardSinkOptions extends StoryboardOptions {
+  path?: string;
+}
+
+/** Emits `storyboard.json` — a Remotion scene manifest (component name, props, and
+ *  `Sequence` frame ranges) for a user's own Remotion project to consume. We emit the
+ *  format the tool reads and never depend on the tool itself, exactly as the design
+ *  engine emits Tailwind and Style Dictionary config without depending on either.
+ *  That also keeps this side of the line free of Remotion's source-available license:
+ *  the manifest is ours, the renderer is the user's. */
+export class StoryboardSink implements DemoSink {
+  constructor(private readonly opts: StoryboardSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const board = buildStoryboard(output, this.opts);
+    return [{
+      path: this.opts.path ?? "storyboard.json",
+      content: JSON.stringify(
+        {
+          demo: output.spec.name,
+          fps: board.fps,
+          totalFrames: board.totalFrames,
+          // Stated so a consumer sees the boundary rather than rediscovering it:
+          // the live beat is deliberately absent from the video track.
+          note:
+            "Scenes cover the framing beats only. The live agentic run is never " +
+            "pre-rendered — rendering it would reproduce the opaque-reel failure mode.",
+          scenes: board.scenes,
+        },
+        null,
+        2,
+      ) + "\n",
+    }];
+  }
+}
+
+// ── Architecture canvas (tldraw) ─────────────────────────────────────────────
+
+export interface CanvasSinkOptions extends StoryboardOptions {
+  path?: string;
+}
+
+/** Emits `canvas.json` — the architecture diagrams with DERIVED positions, one entry
+ *  per canvas beat.
+ *
+ *  Deliberately a neutral node/edge/position document rather than a native `.tldr`
+ *  file: tldraw's on-disk record schema is versioned and changes between releases, and
+ *  this package has no way to verify the current shape offline. Emitting a documented
+ *  intermediate that a thin importer maps onto the editor's `createShapes` API is
+ *  honest about what we know; claiming native-format conformance would not be.
+ *  (Verify against the live tldraw schema before writing that importer.) */
+export class CanvasSink implements DemoSink {
+  constructor(private readonly opts: CanvasSinkOptions = {}) {}
+
+  emit(output: DemoOutput): SinkFile[] {
+    const board = buildStoryboard(output, this.opts);
+    if (board.canvases.length === 0) return [];
+
+    return [{
+      path: this.opts.path ?? "canvas.json",
+      content: JSON.stringify(
+        {
+          demo: output.spec.name,
+          format: "objectcore-demo-canvas@1",
+          canvases: board.canvases.map((c) => ({
+            beatId: c.beatId,
+            beatTitle: c.beatTitle,
+            nodes: c.nodes,
+            edges: c.edges,
+          })),
+        },
+        null,
+        2,
+      ) + "\n",
+    }];
   }
 }

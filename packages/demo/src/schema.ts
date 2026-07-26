@@ -35,8 +35,13 @@ const PERSONA_KEYS = new Set(["id", "title", "cares"]);
 const EVIDENCE_KEYS = new Set(["id", "kind", "ref", "note"]);
 const CLAIM_KEYS = new Set(["text", "evidence"]);
 const BEAT_KEYS = new Set([
-  "id", "kind", "title", "persona", "durationSec", "narration", "claims", "live",
+  "id", "kind", "title", "persona", "durationSec", "narration", "claims", "live", "visual",
 ]);
+const SCENE_VISUAL_KEYS = new Set(["kind", "scene", "props", "transition"]);
+const CANVAS_VISUAL_KEYS = new Set(["kind", "nodes", "edges"]);
+const CANVAS_NODE_KEYS = new Set(["id", "label", "group"]);
+const CANVAS_EDGE_KEYS = new Set(["from", "to", "label"]);
+const TRANSITIONS = new Set(["cut", "fade", "wipe", "slide"]);
 const LIVE_KEYS = new Set([
   "repo", "task", "fallback", "checkpoints", "expectedFailure", "traceSurfaces",
 ]);
@@ -242,6 +247,22 @@ function checkBeats(v: unknown, issues: DemoIssue[]): void {
         message: `\`live\` is only valid on a "live-demo" beat (this one is "${String(kind)}")`,
       });
     }
+
+    // The Devin lesson as a type constraint: the substantive middle is never
+    // pre-rendered. Video frames the demo; it does not replace it.
+    if (b.visual !== undefined) {
+      if (kind === "live-demo") {
+        issues.push({
+          level: "error",
+          path: `${path}.visual`,
+          message:
+            "a `live-demo` beat may not carry a `visual` — pre-rendering the agentic run " +
+            "turns the substantive middle back into an opaque reel",
+        });
+      } else {
+        checkVisual(b.visual, `${path}.visual`, issues);
+      }
+    }
   });
   checkUniqueIds(ids, "beats", issues);
 }
@@ -293,4 +314,83 @@ function checkLive(v: unknown, path: string, issues: DemoIssue[]): void {
       && (!Array.isArray(v.traceSurfaces) || !v.traceSurfaces.every(isNonEmptyString))) {
     issues.push({ level: "error", path: `${path}.traceSurfaces`, message: "`traceSurfaces` must be an array of strings when present" });
   }
+}
+
+function checkVisual(v: unknown, path: string, issues: DemoIssue[]): void {
+  if (!isObj(v)) {
+    issues.push({ level: "error", path, message: "`visual` must be an object" });
+    return;
+  }
+
+  if (v.kind === "scene") {
+    rejectUnknown(v, SCENE_VISUAL_KEYS, path, issues);
+    if (!isNonEmptyString(v.scene)) {
+      issues.push({ level: "error", path: `${path}.scene`, message: "`scene` must be a non-empty component name" });
+    }
+    if (v.props !== undefined && !isObj(v.props)) {
+      issues.push({ level: "error", path: `${path}.props`, message: "`props` must be an object when present" });
+    }
+    if (v.transition !== undefined && (typeof v.transition !== "string" || !TRANSITIONS.has(v.transition))) {
+      issues.push({
+        level: "error",
+        path: `${path}.transition`,
+        message: `\`transition\` must be one of: ${[...TRANSITIONS].join(", ")}`,
+      });
+    }
+    return;
+  }
+
+  if (v.kind === "canvas") {
+    rejectUnknown(v, CANVAS_VISUAL_KEYS, path, issues);
+    if (!Array.isArray(v.nodes) || v.nodes.length === 0) {
+      issues.push({ level: "error", path: `${path}.nodes`, message: "`nodes` must be a non-empty array" });
+    } else {
+      const ids: string[] = [];
+      v.nodes.forEach((n, i) => {
+        const np = `${path}.nodes[${i}]`;
+        if (!isObj(n)) {
+          issues.push({ level: "error", path: np, message: "node must be an object" });
+          return;
+        }
+        rejectUnknown(n, CANVAS_NODE_KEYS, np, issues);
+        const id = checkId(n.id, `${np}.id`, issues);
+        if (id) ids.push(id);
+        if (!isNonEmptyString(n.label)) {
+          issues.push({ level: "error", path: `${np}.label`, message: "`label` must be a non-empty string" });
+        }
+        if (n.group !== undefined && !isNonEmptyString(n.group)) {
+          issues.push({ level: "error", path: `${np}.group`, message: "`group` must be a non-empty string when present" });
+        }
+      });
+      checkUniqueIds(ids, `${path}.nodes`, issues);
+    }
+
+    if (!Array.isArray(v.edges)) {
+      issues.push({ level: "error", path: `${path}.edges`, message: "`edges` must be an array (may be empty)" });
+    } else {
+      v.edges.forEach((e, i) => {
+        const ep = `${path}.edges[${i}]`;
+        if (!isObj(e)) {
+          issues.push({ level: "error", path: ep, message: "edge must be an object" });
+          return;
+        }
+        rejectUnknown(e, CANVAS_EDGE_KEYS, ep, issues);
+        for (const key of ["from", "to"] as const) {
+          if (!isNonEmptyString(e[key])) {
+            issues.push({ level: "error", path: `${ep}.${key}`, message: `\`${key}\` must be a node id` });
+          }
+        }
+        if (e.label !== undefined && !isNonEmptyString(e.label)) {
+          issues.push({ level: "error", path: `${ep}.label`, message: "`label` must be a non-empty string when present" });
+        }
+      });
+    }
+    return;
+  }
+
+  issues.push({
+    level: "error",
+    path: `${path}.kind`,
+    message: '`visual.kind` must be "scene" or "canvas"',
+  });
 }

@@ -33,6 +33,7 @@ describe("runDemoGate", () => {
       targetSec: 1200,
       oscillations: 3,
       evidenceCoverage: 1,
+      visualSec: 0,
     });
   });
 

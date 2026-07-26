@@ -12,6 +12,8 @@
 //     black box, which is the specific thing that lost that room.
 //   - EVIDENCE (evidence.ts) and DE-SLOP (deslop.ts) — substance.
 //   - BUDGET — the plan fits the slot it was written for.
+//   - VIDEO (storyboard.ts) — the pre-rendered track never outweighs the live run,
+//     and no scene smuggles in nondeterminism.
 // Pure; never throws.
 
 import type { DemoOutput, DerivedBeat } from "./derive";
@@ -19,8 +21,10 @@ import type { DemoIssue } from "./schema";
 import { checkEvidence, evidenceCoverage } from "./evidence";
 import { checkDeslop } from "./deslop";
 import type { DeslopOptions } from "./deslop";
+import { buildStoryboard, checkCanvases, checkStoryboardDeterminism, checkVideoBalance } from "./storyboard";
+import type { StoryboardOptions } from "./storyboard";
 
-export interface DemoGateOptions extends DeslopOptions {
+export interface DemoGateOptions extends DeslopOptions, StoryboardOptions {
   /** Allowed drift between planned runtime and the target slot. Default 0.15. */
   durationTolerance?: number;
 }
@@ -36,6 +40,8 @@ export interface DemoGateResult {
     targetSec: number;
     oscillations: number;
     evidenceCoverage: number;
+    /** Seconds of pre-rendered video vs seconds of live agentic run (P5). */
+    visualSec: number;
   };
 }
 
@@ -179,6 +185,7 @@ export function checkBudget(output: DemoOutput, tolerance = 0.15): DemoIssue[] {
 /** The whole deterministic gate. `ok` is "no errors" — warnings are surfaced, never
  *  silently dropped and never blocking (the no-silent-caps stance). */
 export function runDemoGate(output: DemoOutput, opts: DemoGateOptions = {}): DemoGateResult {
+  const board = buildStoryboard(output, opts);
   const issues: DemoIssue[] = [
     ...output.issues,
     ...checkStructure(output),
@@ -186,6 +193,10 @@ export function runDemoGate(output: DemoOutput, opts: DemoGateOptions = {}): Dem
     ...checkEvidence(output),
     ...checkDeslop(output, opts),
     ...checkBudget(output, opts.durationTolerance),
+    // The video track (P5): the same storyboard the sinks render is what gets gated.
+    ...checkVideoBalance(board),
+    ...checkStoryboardDeterminism(board),
+    ...checkCanvases(board),
   ];
 
   return {
@@ -198,6 +209,7 @@ export function runDemoGate(output: DemoOutput, opts: DemoGateOptions = {}): Dem
       targetSec: output.spec.targetDurationSec,
       oscillations: countOscillations(output),
       evidenceCoverage: evidenceCoverage(output),
+      visualSec: board.visualSec,
     },
   };
 }

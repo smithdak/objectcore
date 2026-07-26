@@ -4,6 +4,7 @@ export * from "./derive";
 export * from "./sources";
 export * from "./evidence";
 export * from "./deslop";
+export * from "./storyboard";
 export * from "./gate";
 export * from "./sinks";
 export * from "./judge";

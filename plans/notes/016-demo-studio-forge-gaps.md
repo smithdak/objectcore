@@ -81,3 +81,36 @@ than it looks, and that a roster decision is only *validated* on a run with a ke
 - **No MCP or output styles exercised.** Deferred to P5 by the plan, not a limitation
   found here.
 - **`settings`** was not needed — no agent should run as the main thread.
+
+---
+
+## P5 addendum — the MCP bundling decision
+
+The plan said the plugin would ship `.mcp.json` and trip the publish-time provenance
+gate. On building it, that turned out to be the wrong shape, for the same reason
+`@objectcore/knowledge-mcp` deferred it:
+
+A plugin-bundled `.mcp.json` must point at a server the *installing project* can run.
+`packages/demo-mcp` is a workspace package depending on `@modelcontextprotocol/sdk` and
+`@objectcore/demo`; neither resolves at an outside install site. Bundling it would ship a
+server reference that works only inside this repo — a broken artifact whose brokenness
+the gate cannot see, which is precisely the failure mode Gap 1 above describes.
+
+**Decision**: build the server, dogfood it via the repo-root `.mcp.json` (the
+knowledge-mcp precedent exactly), and leave plugin bundling deferred behind the same
+packaging work knowledge-mcp is waiting on. `plugins/demo-studio` therefore ships no
+`.mcp.json`, and does not require attestation to publish.
+
+**The provenance gate was still verified**, since the decision rests on it. Both of
+`release:publish`'s independent triggers were exercised directly:
+
+```
+manifest declares mcpServers -> true
+manifest clean               -> false
+root .mcp.json present       -> true   (scans: .mcp.json, mcp.json)
+```
+
+A full `release:publish` dry run could not be used as the proof: its clean-working-tree
+assertion fires *before* the provenance gate, and the tree carries another session's
+uncommitted work. The predicate check above is the honest substitute — it exercises the
+gate's own functions, not a reimplementation of them.

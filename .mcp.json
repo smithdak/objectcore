@@ -2,7 +2,17 @@
   "mcpServers": {
     "objectcore-kb": {
       "command": "bun",
-      "args": ["packages/knowledge-mcp/src/main.ts", "--usage-log", "metrics/kb-usage.jsonl"]
+      "args": [
+        "packages/knowledge-mcp/src/main.ts",
+        "--usage-log",
+        "metrics/kb-usage.jsonl"
+      ]
+    },
+    "objectcore-demo": {
+      "command": "bun",
+      "args": [
+        "packages/demo-mcp/src/main.ts"
+      ]
     }
   }
 }
