@@ -6,3 +6,7 @@ export * from "./evidence";
 export * from "./deslop";
 export * from "./gate";
 export * from "./sinks";
+export * from "./judge";
+export * from "./evaluate";
+export * from "./scaffold";
+export * from "./presets";

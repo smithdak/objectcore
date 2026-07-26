@@ -1,0 +1,143 @@
+{
+  "name": "platform-migration",
+  "title": "The migration nobody wants to staff",
+  "brief": "Show a delivery-accountable audience how an agent takes on the wide, boring, high-risk half of a platform migration — with the blast radius visible and a human deciding every merge.",
+  "targetDurationSec": 1800,
+  "audience": [
+    {
+      "id": "staff-engineer",
+      "title": "Staff engineer, platform",
+      "cares": "Whether the mechanical changes are actually correct across every call site, including the weird ones."
+    },
+    {
+      "id": "delivery-lead",
+      "title": "Delivery lead",
+      "cares": "Whether this shortens an 18-month migration without adding an incident to it."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "call-sites",
+      "kind": "metric",
+      "ref": "the migration inventory — REPLACE with your own count of affected call sites"
+    },
+    {
+      "id": "codemod-diff",
+      "kind": "artifact",
+      "ref": "the branch produced live during this demo"
+    },
+    {
+      "id": "test-run",
+      "kind": "demo",
+      "ref": "the suite executed on stage after the transform"
+    },
+    {
+      "id": "rollback",
+      "kind": "artifact",
+      "ref": "the per-module revert procedure in the migration runbook"
+    }
+  ],
+  "beats": [
+    {
+      "id": "the-ticket",
+      "kind": "opener",
+      "title": "The ticket that has been reassigned four times",
+      "persona": "delivery-lead",
+      "durationSec": 110,
+      "narration": "There is a ticket in every backlog here that has changed owners four times and never changed status. It is not hard. It is wide. Nobody wants to spend a quarter on it, so nobody does."
+    },
+    {
+      "id": "why-it-stalls",
+      "kind": "what-is",
+      "title": "Why wide work stalls",
+      "persona": "staff-engineer",
+      "durationSec": 210,
+      "narration": "The work is mechanical until it isn't. Most call sites are identical; a handful are load-bearing and strange, and you cannot tell which is which without reading all of them.",
+      "claims": [
+        {
+          "text": "The migration touches more call sites than any one engineer will read carefully in a quarter.",
+          "evidence": ["call-sites"]
+        }
+      ]
+    },
+    {
+      "id": "different-shape",
+      "kind": "what-could-be",
+      "title": "Reading all of them is the cheap part now",
+      "durationSec": 210,
+      "narration": "Reading every call site and separating the boring ones from the strange ones is exactly the work that got cheap. What stayed expensive is deciding what to do about the strange ones — which is the part you actually wanted your staff engineer on."
+    },
+    {
+      "id": "live-migration",
+      "kind": "live-demo",
+      "title": "One module, end to end, live",
+      "persona": "staff-engineer",
+      "durationSec": 620,
+      "narration": "We take one module. It classifies every call site, transforms the mechanical ones, and stops at the ones it is not sure about — and I want you watching that list of uncertainties more than the diff.",
+      "claims": [
+        {
+          "text": "Every transformed call site lands in a reviewable branch, not in main.",
+          "evidence": ["codemod-diff"]
+        },
+        {
+          "text": "The suite runs against the transform before a human is asked to look at it.",
+          "evidence": ["test-run"]
+        }
+      ],
+      "live": {
+        "repo": "REPLACE ME — the real repository carrying the migration",
+        "task": "Classify every call site of the deprecated API in this module, transform the mechanical ones, and list the ones you are not confident about with your reasoning for each.",
+        "fallback": "A recorded run of the same module, cued to the classification list, with the branch already pushed so the review section still works.",
+        "checkpoints": [
+          "Review the classification before any transform runs.",
+          "Read the uncertainty list out loud, together, and pick one to inspect.",
+          "Approve or reject the branch on stage."
+        ],
+        "expectedFailure": "One call site is classified as mechanical when it is not. Find it during the review checkpoint rather than pretending the classification was clean.",
+        "traceSurfaces": [
+          "the classification of each call site",
+          "its stated reason for each uncertain one",
+          "the test run against the transformed module",
+          "the diff, file by file"
+        ]
+      }
+    },
+    {
+      "id": "what-stays-manual",
+      "kind": "what-is",
+      "title": "What stays on your people",
+      "persona": "delivery-lead",
+      "durationSec": 160,
+      "narration": "The uncertain call sites did not get solved. They got surfaced, early, with reasoning attached. That is a smaller pile than the original, and it is the pile worth your senior time.",
+      "claims": [
+        {
+          "text": "A per-module rollback path exists before any module is merged.",
+          "evidence": ["rollback"]
+        }
+      ]
+    },
+    {
+      "id": "module-by-module",
+      "kind": "what-could-be",
+      "title": "Module by module, on a schedule",
+      "durationSec": 220,
+      "narration": "This is the shape that makes the migration schedulable: a repeatable unit, a visible blast radius, a rollback per unit, and a review that a human can actually complete in a sitting."
+    },
+    {
+      "id": "the-moment",
+      "kind": "star",
+      "title": "The list of things it was unsure about",
+      "durationSec": 90,
+      "narration": "The most valuable artifact in that run was not the diff. It was the list of call sites it told us it was not sure about — the list a quarter of unassisted reading would have produced silently, or not at all."
+    },
+    {
+      "id": "close",
+      "kind": "close",
+      "title": "Pick the module you have been avoiding",
+      "persona": "delivery-lead",
+      "durationSec": 180,
+      "narration": "Do not start with the whole migration. Start with the one module everybody has been routing around, and run exactly what you just watched."
+    }
+  ],
+  "takeaway": "The classification prompt, the checkpoint script, and the per-module rollback runbook used in this demo — enough to run one module of your own migration this week."
+}
