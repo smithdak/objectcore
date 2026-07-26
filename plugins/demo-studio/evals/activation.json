@@ -6,7 +6,7 @@
       "note": "planning the arc from scratch"
     },
     {
-      "prompt": "My demo drags in the middle and the ending falls flat — how do I fix the shape of it?",
+      "prompt": "My demo drags in the middle and the ending falls flat \u2014 how do I fix the shape of it?",
       "expect": "structuring-a-demo",
       "note": "distinct intent: repairing an existing arc"
     },
@@ -33,17 +33,17 @@
     {
       "prompt": "Convert this CSV file into JSON and sort it by the second column.",
       "expect": null,
-      "note": "plain negative — clearly unrelated"
+      "note": "plain negative \u2014 clearly unrelated"
     },
     {
       "prompt": "Can you book a demo of the product with the vendor for next Tuesday afternoon?",
       "expect": null,
-      "note": "confusability negative — shares 'demo', wrong sense entirely (scheduling)"
+      "note": "confusability negative \u2014 shares 'demo', wrong sense entirely (scheduling)"
     },
     {
-      "prompt": "Which seeded color preset should I pick for my app's dark mode?",
+      "prompt": "Which starter template should I pick for a new Next.js project?",
       "expect": null,
-      "note": "confusability negative aimed at design-forge's choosing-a-seeded-theme — must not be stolen by choosing-a-demo-archetype"
+      "note": "confusability negative \u2014 shares \"which ... should I pick\" with choosing-a-demo-archetype but is out of domain, so NOTHING should fire. (The design-forge boundary is proven by design-forge's own positives, not by asserting null on a prompt that legitimately belongs to it.)"
     }
   ]
 }

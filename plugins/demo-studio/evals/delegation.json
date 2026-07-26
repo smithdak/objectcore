@@ -1,7 +1,7 @@
 {
   "cases": [
     {
-      "prompt": "Here's the demo I drafted for next week — tear it apart. Is any of this actually substantive or does it read like AI slop?",
+      "prompt": "Here's the demo I drafted for next week \u2014 tear it apart. Is any of this actually substantive or does it read like AI slop?",
       "expect": "demo-critic",
       "note": "the adversarial review of a finished draft"
     },
@@ -18,12 +18,12 @@
     {
       "prompt": "Add a category column to the registry DB schema and write the migration.",
       "expect": null,
-      "note": "ordinary build work — must not be hijacked by any demo agent"
+      "note": "ordinary build work \u2014 must not be hijacked by any demo agent"
     },
     {
-      "prompt": "`bun run check` is red — an activation eval routed to the wrong skill. Diagnose it.",
+      "prompt": "Send the slides from last week's demo to the sales team and book a room for Thursday.",
       "expect": null,
-      "note": "gate-failure diagnosis is self-reflection's territory, not demo-critic's"
+      "note": "negative \u2014 shares \"demo\"/\"slides\" vocabulary but is logistics; no agent should take it. (Gate-failure diagnosis genuinely belongs to reflection's self-reflection, so asserting null on such a prompt was a malformed case.)"
     }
   ]
 }

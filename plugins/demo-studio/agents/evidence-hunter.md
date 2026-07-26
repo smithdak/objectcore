@@ -1,6 +1,6 @@
 ---
 name: evidence-hunter
-description: Use to find and VERIFY the sources backing the claims a demo makes — locating the citation, metric, artifact, or live demonstration for each assertion, confirming it says what the claim says, and reporting which claims cannot be backed and should be cut. Delegate when a demo's claims need sourcing or fact-checking before it is presented.
+description: Use to find and VERIFY what backs the claims in a demo — locating the citation, metric, artifact, or live demonstration behind each assertion, confirming the source actually says what the claim says, and reporting which claims cannot be backed and should be cut or weakened. Delegate whenever demo claims need sourcing or fact-checking, whether the demo is already drafted or the claims are still being decided.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Edit
 ---
 # Evidence hunter
