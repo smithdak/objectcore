@@ -67,6 +67,13 @@ function yamlString(v: string): string {
 export interface SlidevSinkOptions {
   /** Slidev theme name for the deck frontmatter. Defaults to `none` -- see below. */
   theme?: string;
+  /** Where to write the deck's stylesheet. Slidev injects a `style.css` sitting next
+   *  to the deck; the default is load-bearing for the same reason as `playerPath`. */
+  stylePath?: string;
+  /** Where to write the rehearsal player component. Slidev mounts a file named
+   *  `global-bottom.vue` sitting next to the deck on every slide, so the default is
+   *  load-bearing — rename it and the player silently stops appearing. */
+  playerPath?: string;
   /** A stylesheet inlined into the deck's `<style>` block. The CLI passes the design
    *  system's own CSS custom properties here when the spec names a `designSystem`,
    *  which is how a deck inherits the brand WITHOUT this package depending on the
@@ -125,19 +132,36 @@ const BASE_CSS = [
   ".slidev-layout {",
   "  background: var(--demo-bg);",
   "  color: var(--demo-fg);",
-  "  padding: 3.4rem 4rem;",
+  "  padding: 3.2rem 3.6rem 4.2rem;",   // room reserved for the footer rule
+  "  overflow: hidden;",
+  "}",
+  // Slidev's own dark toggle. The injected design tokens define light under `:root`,
+  // so without this a deck is always light; a dark design theme can be mapped here
+  // later, but a presentation defaulting to a dark surface is the useful behaviour.
+  "html.dark {",
+  "  --demo-bg: #0f1115;",
+  "  --demo-surface: #171a23;",
+  "  --demo-fg: #e9ebf1;",
+  "  --demo-muted: #99a2b4;",
+  "  --demo-border: #272c39;",
   "}",
   ".slidev-layout h1 {",
   "  color: var(--demo-fg);",
-  "  font-size: 2.9rem;",
+  "  font-size: 2.4rem;",
   "  line-height: 1.1;",
   "  font-weight: 650;",
   "  letter-spacing: -0.022em;",
   "  max-width: 20ch;",
   "  margin-bottom: 1.5rem;",
   "}",
+  // A two-column slide has half the width; a full-bleed title there wraps to three
+  // lines and pushes the content off the bottom.
+  '.slidev-layout[class*="two-cols"] h1 { font-size: 1.9rem; max-width: 18ch; }',
+  '.slidev-layout[class*="two-cols"] li { font-size: 0.95rem; margin-bottom: 0.55rem; max-width: 34ch; }',
+  ".demo-claims li { font-size: 0.88rem; color: var(--demo-muted); }",
+  ".demo-claims { margin-top: 1.2rem; border-top: 1px solid var(--demo-border); padding-top: 0.9rem; }",
   ".slidev-layout.slidev-layout-cover h1, .slidev-layout.slidev-layout-statement h1 {",
-  "  font-size: 3.9rem;",
+  "  font-size: 3.4rem;",
   "  max-width: 16ch;",
   "  letter-spacing: -0.03em;",
   "}",
@@ -182,7 +206,7 @@ const BASE_CSS = [
   "}",
   ".demo-live {",
   "  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
-  "  font-size: 0.88rem;",
+  "  font-size: 0.82rem;",
   "  line-height: 1.55;",
   "  background: var(--demo-surface);",
   "  border: 1px solid var(--demo-border);",
@@ -195,7 +219,7 @@ const BASE_CSS = [
   ".demo-watch li { max-width: 28ch; font-size: 0.95rem; margin-bottom: 0.5rem; }",
   ".demo-foot {",
   "  position: absolute;",
-  "  bottom: 1.5rem; left: 4rem; right: 4rem;",
+  "  bottom: 1.4rem; left: 3.6rem; right: 3.6rem;",
   "  display: flex; justify-content: space-between;",
   "  font-size: 0.68rem;",
   "  color: var(--demo-muted);",
@@ -206,6 +230,85 @@ const BASE_CSS = [
 
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** The rehearsal player, emitted alongside the deck as Slidev's `global-bottom.vue`
+ *  (a component Slidev mounts on every slide). Slidev has no autoplay, but the spec
+ *  knows how long every beat is meant to take — so the deck can advance itself at the
+ *  planned pace and let the presenter feel whether the runtime budget is real. The
+ *  `checkBudget` gate says the plan FITS the slot; this is how you find out whether it
+ *  fits YOU. Durations are baked from the derived timeline, so the player can never
+ *  disagree with the runbook's cue sheet. */
+function playerComponent(output: DemoOutput): string {
+  // Deck order: title slide (no planned time), one per beat, takeaway (no planned time).
+  const plan = [0, ...output.beats.map((b) => b.beat.durationSec), 0];
+  return [
+    '<script setup lang="ts">',
+    "import { computed, onUnmounted, ref, watch } from 'vue'",
+    "import { useNav } from '@slidev/client'",
+    "",
+    "// Planned seconds per slide, in deck order — derived, never authored.",
+    `const PLAN: number[] = [${plan.join(", ")}]`,
+    "",
+    "const { currentSlideNo, next, total } = useNav()",
+    "const playing = ref(false)",
+    "const remaining = ref(0)",
+    "let timer: ReturnType<typeof setInterval> | undefined",
+    "",
+    "const planned = computed(() => PLAN[currentSlideNo.value - 1] ?? 0)",
+    "",
+    "function tick() {",
+    "  if (remaining.value > 0) { remaining.value -= 1; return }",
+    "  if (currentSlideNo.value >= total.value) { stop(); return }",
+    "  next()",
+    "}",
+    "",
+    "function start() {",
+    "  playing.value = true",
+    "  remaining.value = planned.value",
+    "  timer = setInterval(tick, 1000)",
+    "}",
+    "",
+    "function stop() {",
+    "  playing.value = false",
+    "  if (timer) clearInterval(timer)",
+    "  timer = undefined",
+    "}",
+    "",
+    "watch(currentSlideNo, () => { if (playing.value) remaining.value = planned.value })",
+    "onUnmounted(stop)",
+    "",
+    "const mmss = computed(() => {",
+    "  const s = Math.max(0, remaining.value)",
+    "  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`",
+    "})",
+    "</" + "script>",
+    "",
+    "<template>",
+    '  <div class="demo-player">',
+    "    <button @click=\"playing ? stop() : start()\">",
+    "      {{ playing ? '❚❚ pause' : '▶ rehearse' }}",
+    "    </button>",
+    '    <span v-if="playing">{{ mmss }} left on this beat</span>',
+    "  </div>",
+    "</template>",
+    "",
+    "<style scoped>",
+    ".demo-player {",
+    "  position: fixed; bottom: 0.6rem; right: 0.8rem; z-index: 100;",
+    "  display: flex; align-items: center; gap: 0.6rem;",
+    "  font-size: 0.72rem; opacity: 0.5;",
+    "}",
+    ".demo-player:hover { opacity: 1; }",
+    ".demo-player button {",
+    "  background: var(--demo-surface, #171a23);",
+    "  color: var(--demo-fg, #e9ebf1);",
+    "  border: 1px solid var(--demo-border, #272c39);",
+    "  border-radius: 999px; padding: 0.2rem 0.7rem; cursor: pointer;",
+    "}",
+    "</style>",
+    "",
+  ].join("\n");
+}
 
 /** Emits a Slidev deck. Claims are rendered WITH their evidence refs inline -- the
  *  deck cannot show an assertion whose backing the evidence gate hasn't resolved. */
@@ -229,10 +332,6 @@ export class SlidevSink implements DemoSink {
       `<p class="demo-lede">${escapeHtml(spec.brief)}</p>`,
       "",
       `<!-- Derived by @objectcore/demo from ${spec.name}. Do not hand-edit: re-run \`bun run demo:build\`. -->`,
-      "",
-      "<style>",
-      this.opts.css ? `${this.opts.css}\n\n${BASE_CSS}` : BASE_CSS,
-      "</style>",
     ].join("\n");
 
     const slides = output.beats.map((b) => this.slide(b, output));
@@ -253,8 +352,20 @@ export class SlidevSink implements DemoSink {
     ].join("\n");
 
     return [{
+      // Slidev injects `style.css` sitting next to the deck into the whole app. A
+      // `<style>` block INSIDE a slide is scoped to that slide, which is why the deck
+      // rendered completely unstyled until this moved out of the markdown.
+      path: this.opts.stylePath ?? "style.css",
+      content: this.opts.css ? `${this.opts.css}\n\n${BASE_CSS}\n` : `${BASE_CSS}\n`,
+    }, {
+      path: this.opts.playerPath ?? "global-bottom.vue",
+      content: playerComponent(output),
+    }, {
       path: this.opts.path ?? "deck.md",
-      content: [head, ...slides, closing].join(SLIDE_BREAK) + "\n",
+      // Each slide opens with its own `---\nlayout: x\n---`, and in Slidev THAT is the
+      // slide separator. Joining with SLIDE_BREAK as well emitted a second one, so every
+      // beat got a blank slide ahead of it (19 slides for a 10-slide deck).
+      content: [head, ...slides, closing].join("\n\n") + "\n",
     }];
   }
 
@@ -271,37 +382,48 @@ export class SlidevSink implements DemoSink {
       "",
     ];
 
-    if (beat.kind === "live-demo" && beat.live) {
-      // Left column: what is actually running. Right: what stays visible while it does.
+    const isLive = beat.kind === "live-demo" && beat.live;
+
+    if (isLive) {
+      // LEFT column: what is actually being run.
       lines.push(
-        `<div class="demo-live">$ ${escapeHtml(beat.live.task)}</div>`,
+        `<div class="demo-live">$ ${escapeHtml(beat.live!.task)}</div>`,
         "",
-        `<div class="demo-repo">${escapeHtml(beat.live.repo)}</div>`,
-        "",
-        "::right::",
-        "",
-        '<div class="demo-kicker">On screen throughout</div>',
-        "",
-        '<div class="demo-watch">',
+        `<div class="demo-repo">${escapeHtml(beat.live!.repo)}</div>`,
         "",
       );
-      for (const surface of beat.live.traceSurfaces ?? []) lines.push(`- ${surface}`);
-      lines.push("", "</div>", "");
     }
 
     // Claim text stays raw: a bullet is markdown, so an author can write `code` or
     // emphasis in a claim. Everything landing inside an HTML element is escaped.
-    for (const claim of b.claims) {
+    const claimLines = b.claims.map((claim) => {
       const refs = claim.evidence
-        .map((e) => `<span class="demo-ref">${escapeHtml(e.id)}</span>`)
+        .map((e) => ` <span class="demo-ref">${escapeHtml(e.id)}</span>`)
         .join("");
-      lines.push(`- ${claim.text}${refs}`);
+      return `- ${claim.text}${refs}`;
+    });
+
+    if (isLive) {
+      // RIGHT column: what stays visible while it runs, then the claims. `::right::`
+      // sends everything after it to the right column, so ordering is the layout.
+      // The left column keeps only the task — stacking claims there overflowed.
+      lines.push(
+        "::right::",
+        "",
+        '<div class="demo-kicker">On screen throughout</div>',
+        "",
+      );
+      // No wrapper div: a markdown list inside a raw HTML block is not parsed.
+      for (const surface of beat.live!.traceSurfaces ?? []) lines.push(`- ${surface}`);
+      lines.push("");
+      if (claimLines.length) lines.push('<div class="demo-claims">', "", ...claimLines, "", "</div>", "");
+    } else if (claimLines.length) {
+      lines.push(...claimLines, "");
     }
-    if (b.claims.length) lines.push("");
 
     // A slide carrying nothing but a title is an outline, not a deck. When a beat
     // makes no claims, show whose question it answers -- the spec already knows.
-    if (!b.claims.length && beat.kind !== "live-demo" && b.persona) {
+    if (!b.claims.length && !isLive && b.persona) {
       lines.push(`<p class="demo-lede">${escapeHtml(b.persona.cares)}</p>`, "");
     }
 

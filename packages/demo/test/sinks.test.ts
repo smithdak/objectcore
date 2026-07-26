@@ -5,6 +5,10 @@ import { validDemo } from "./fixture";
 
 const derived = () => deriveDemo(validDemo());
 
+/** deck.md is no longer the only file the sink emits — grab it by name. */
+const deckOf = (files: Array<{ path: string; content: string }>) =>
+  files.find((f) => f.path === "deck.md")!.content;
+
 describe("clock", () => {
   test("formats seconds as mm:ss", () => {
     expect(clock(0)).toBe("0:00");
@@ -17,68 +21,85 @@ describe("clock", () => {
 describe("SlidevSink", () => {
   test("emits one deck with valid frontmatter and a slide per beat", () => {
     const files = new SlidevSink().emit(derived());
-    expect(files).toHaveLength(1);
-    expect(files[0]!.path).toBe("deck.md");
-
-    const deck = files[0]!.content;
+    const deck = deckOf(files);
     expect(deck.startsWith("---\ntheme: none\n")).toBe(true);
 
-    // title slide + one per beat + the takeaway slide
-    const slides = deck.split("\n\n---\n\n");
-    expect(slides).toHaveLength(validDemo().beats.length + 2);
+    // Each slide opens with its own `---\nlayout: x\n---`, and in Slidev THAT is the
+    // separator. Emitting a slide break as well once produced a blank slide ahead of
+    // every real one (19 slides for a 10-slide deck).
+    const layouts = deck.match(/(?<=\n)layout: /g) ?? [];
+    expect(layouts).toHaveLength(validDemo().beats.length + 2);
   });
 
   // Found by actually opening a generated deck: Slidev's `default` theme is a separate
   // npm package the CLI offers to install INTERACTIVELY, so a generated deck opened by a
   // script or in CI dies with "cannot prompt for installation". `none` is built in.
   test("defaults to a built-in theme so the deck opens with no install step", () => {
-    expect(new SlidevSink().emit(derived())[0]!.content).toContain("\ntheme: none\n");
+    expect(deckOf(new SlidevSink().emit(derived()))).toContain("\ntheme: none\n");
   });
 
   test("an explicit theme still wins", () => {
-    expect(new SlidevSink({ theme: "seriph" }).emit(derived())[0]!.content)
+    expect(deckOf(new SlidevSink({ theme: "seriph" }).emit(derived())))
       .toContain("\ntheme: seriph\n");
   });
 
   test("renders every claim with its evidence ref (never a bare assertion)", () => {
-    const deck = new SlidevSink().emit(derived())[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("Rework and review latency dominate our measured cycle time.");
     expect(deck).toContain('<span class="demo-ref">cycle-time</span>');
   });
 
   // The arc IS the design: layout is derived from beat kind, never authored.
   test("derives a Slidev layout per beat kind", () => {
-    const deck = new SlidevSink().emit(derived())[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("layout: cover");      // opener
     expect(deck).toContain("layout: two-cols");   // the live beat splits task vs traces
     expect(deck).toContain("layout: statement");  // the STAR moment
     expect(deck).toContain("layout: center");     // the close
   });
 
-  test("ships its own stylesheet so the deck needs no theme install", () => {
-    const deck = new SlidevSink().emit(derived())[0]!.content;
-    expect(deck).toContain("<style>");
-    expect(deck).toContain(".slidev-layout h1");
+  // Slidev scopes a `<style>` block inside a slide to THAT slide — the deck rendered
+  // completely unstyled until this moved out into an injected style.css.
+  test("emits the stylesheet as a separate style.css, not an in-slide <style>", () => {
+    const files = new SlidevSink().emit(derived());
+    expect(files.map((f) => f.path).sort())
+      .toEqual(["deck.md", "global-bottom.vue", "style.css"]);
+
+    const css = files.find((f) => f.path === "style.css")!.content;
+    expect(css).toContain(".slidev-layout h1");
     // written against the design engine's semantic roles, with fallbacks
-    expect(deck).toContain("var(--bg-base,");
-    expect(deck).toContain("var(--accent-default,");
+    expect(css).toContain("var(--bg-base,");
+    expect(css).toContain("var(--accent-default,");
+    expect(css).toContain("html.dark");
+
+    expect(files.find((f) => f.path === "deck.md")!.content).not.toContain("<style>");
   });
 
-  test("injected design-system CSS is inlined ahead of the base styles", () => {
-    const deck = new SlidevSink({ css: ":root { --accent-default: hotpink; }" })
-      .emit(derived())[0]!.content;
-    expect(deck).toContain("--accent-default: hotpink");
-    expect(deck.indexOf("hotpink")).toBeLessThan(deck.indexOf(".slidev-layout h1"));
+  test("injected design-system CSS lands ahead of the base styles", () => {
+    const css = new SlidevSink({ css: ":root { --accent-default: hotpink; }" })
+      .emit(derived()).find((f) => f.path === "style.css")!.content;
+    expect(css).toContain("--accent-default: hotpink");
+    expect(css.indexOf("hotpink")).toBeLessThan(css.indexOf(".slidev-layout h1"));
+  });
+
+  // Slidev has no autoplay, but the spec knows every beat's planned length.
+  test("emits a rehearsal player carrying the derived timeline", () => {
+    const player = new SlidevSink().emit(derived())
+      .find((f) => f.path === "global-bottom.vue")!.content;
+    const spec = validDemo();
+    // title slide (0) + one per beat + takeaway (0)
+    expect(player).toContain(`[0, ${spec.beats.map((b) => b.durationSec).join(", ")}, 0]`);
+    expect(player).toContain("useNav");
   });
 
   // A slide carrying nothing but a title is an outline, not a deck.
   test("a claimless beat still puts its persona's question on the slide", () => {
-    const deck = new SlidevSink().emit(derived())[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("Cycle time and defect escape rate, not model benchmarks.");
   });
 
   test("the live beat splits the task from what stays visible", () => {
-    const deck = new SlidevSink().emit(derived())[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("::right::");
     expect(deck).toContain("On screen throughout");
     expect(deck).toContain('<div class="demo-live">$ ');
@@ -89,17 +110,17 @@ describe("SlidevSink", () => {
   test("escapes prose that lands inside an HTML element", () => {
     const spec = validDemo();
     spec.beats.find((b) => b.kind === "live-demo")!.live!.task = "run <script> & wait";
-    const deck = new SlidevSink().emit(deriveDemo(spec))[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(deriveDemo(spec)));
     expect(deck).toContain("run &lt;script&gt; &amp; wait");
   });
 
   test("carries the takeaway", () => {
-    expect(new SlidevSink().emit(derived())[0]!.content).toContain(validDemo().takeaway);
+    expect(deckOf(new SlidevSink().emit(derived()))).toContain(validDemo().takeaway);
   });
 
   test("is deterministic", () => {
-    expect(new SlidevSink().emit(derived())[0]!.content)
-      .toBe(new SlidevSink().emit(derived())[0]!.content);
+    expect(deckOf(new SlidevSink().emit(derived())))
+      .toBe(deckOf(new SlidevSink().emit(derived())));
   });
 });
 
@@ -124,7 +145,7 @@ describe("RunbookSink", () => {
   test("cue times agree with the derived timeline (one derivation, two views)", () => {
     const out = derived();
     const book = new RunbookSink().emit(out)[0]!.content;
-    const deck = new SlidevSink().emit(out)[0]!.content;
+    const deck = deckOf(new SlidevSink().emit(out));
 
     for (const b of out.beats) {
       // the cue-sheet row and the deck's speaker note quote the same start time
