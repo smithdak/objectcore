@@ -1,0 +1,377 @@
+{
+  "name": "operating-layer",
+  "title": "From engineer to organization",
+  "brief": "Show a delivery-accountable audience how one engineer's accumulated workflows became an operating layer \u2014 and why the durable asset is encoded judgement rather than generated code.",
+  "targetDurationSec": 1500,
+  "designSystem": "objectcore",
+  "audience": [
+    {
+      "id": "delivery-principal",
+      "title": "Delivery principal",
+      "cares": "Whether this survives a team that did not build it, and what it costs to keep running."
+    },
+    {
+      "id": "practice-lead",
+      "title": "Practice lead",
+      "cares": "Whether the judgement compounds across engagements or evaporates when the engineer moves on."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "platform-inventory",
+      "kind": "metric",
+      "ref": "the delivery inventory \u2014 REPLACE with your own repository, brand and locale counts"
+    },
+    {
+      "id": "system-inventory",
+      "kind": "metric",
+      "ref": "the operating layer's own manifest \u2014 agents, commands, hooks, skills, tools, folders"
+    },
+    {
+      "id": "audit-trail",
+      "kind": "artifact",
+      "ref": "the recorded work items and audit events produced as a side effect of delivery"
+    },
+    {
+      "id": "verification-contract",
+      "kind": "artifact",
+      "ref": "the acceptance criteria file each run is checked against, written before the code exists"
+    },
+    {
+      "id": "live-run",
+      "kind": "demo",
+      "ref": "demonstrated live in the one-work-item beat"
+    }
+  ],
+  "beats": [
+    {
+      "id": "the-loop",
+      "kind": "opener",
+      "title": "A generic assistant made specialized work slower",
+      "persona": "delivery-principal",
+      "durationSec": 90,
+      "narration": "It knew the language but not the platform. Not the layering conventions, not the serialization rules, not what this client had already decided. So every task became the same four steps, and I was spending more time briefing the assistant than doing the work.",
+      "visual": {
+        "kind": "chain",
+        "steps": [
+          {
+            "label": "Re-explain",
+            "detail": "the same architecture, every session"
+          },
+          {
+            "label": "Correct",
+            "detail": "output that ignored our conventions"
+          },
+          {
+            "label": "Verify",
+            "detail": "by hand, because nothing else would"
+          },
+          {
+            "label": "Repeat",
+            "detail": "tomorrow, from zero"
+          }
+        ],
+        "note": "The environment varied. The recurring tasks and the corrections did not."
+      }
+    },
+    {
+      "id": "the-scale",
+      "kind": "what-is",
+      "title": "The same exact work, over and over",
+      "persona": "practice-lead",
+      "durationSec": 150,
+      "narration": "This is the shape of the estate. One shared platform, inheriting brands, and two dozen legacy sites \u2014 the variation is real, but the work each variation demands is not new work.",
+      "claims": [
+        {
+          "text": "The estate is wide enough that no engineer reads all of it carefully in a quarter.",
+          "evidence": [
+            "platform-inventory"
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "stats",
+        "items": [
+          {
+            "value": "45",
+            "label": "interdependent repositories"
+          },
+          {
+            "value": "35+",
+            "label": "live brand sites"
+          },
+          {
+            "value": "25",
+            "label": "countries and regions"
+          },
+          {
+            "value": "10",
+            "label": "languages"
+          }
+        ]
+      }
+    },
+    {
+      "id": "encoding",
+      "kind": "what-could-be",
+      "title": "Agentic engineering is progressive encoding",
+      "durationSec": 150,
+      "narration": "Nothing here was a leap. Each layer answers one question that kept being asked, and each was added the week it was needed. Skills encoded the domain; specialists encoded the recurring roles.",
+      "visual": {
+        "kind": "chain",
+        "steps": [
+          {
+            "label": "Context",
+            "detail": "what is true here?"
+          },
+          {
+            "label": "Tools",
+            "detail": "what can be observed or changed?"
+          },
+          {
+            "label": "Workflows",
+            "detail": "what sequence works repeatedly?"
+          },
+          {
+            "label": "Guardrails",
+            "detail": "what must never be delegated?"
+          },
+          {
+            "label": "Feedback",
+            "detail": "what should improve next time?"
+          }
+        ]
+      }
+    },
+    {
+      "id": "accretion",
+      "kind": "what-is",
+      "title": "The system accreted in response to real failures",
+      "persona": "practice-lead",
+      "durationSec": 160,
+      "narration": "None of this was designed up front. Every layer is still here because it solved a delivery problem that came back \u2014 and the ones that did not solve anything were removed.",
+      "visual": {
+        "kind": "timeline",
+        "items": [
+          {
+            "when": "Dec",
+            "label": "Document",
+            "detail": "preserve conventions"
+          },
+          {
+            "when": "Mar",
+            "label": "Remember",
+            "detail": "durable memory and maps"
+          },
+          {
+            "when": "Apr",
+            "label": "Act",
+            "detail": "tools, scripts, orchestration"
+          },
+          {
+            "when": "May",
+            "label": "Challenge",
+            "detail": "independent review"
+          },
+          {
+            "when": "Jun",
+            "label": "Operate",
+            "detail": "queue mirror, audit, dashboard"
+          },
+          {
+            "when": "Jul",
+            "label": "Harden",
+            "detail": "policy hooks, durable artifacts"
+          }
+        ],
+        "note": "Each layer remained because it solved a delivery problem that came back."
+      }
+    },
+    {
+      "id": "the-inventory",
+      "kind": "what-is",
+      "title": "By July, one engineer had accumulated an operating system",
+      "persona": "practice-lead",
+      "durationSec": 140,
+      "narration": "None of this was planned as a system. It is what is left after nine months of encoding the same answers \u2014 and it is small enough that a second engineer can read all of it in an afternoon.",
+      "claims": [
+        {
+          "text": "The operating layer is inspectable in full: every agent, command, hook and skill is a file in the repository.",
+          "evidence": [
+            "system-inventory"
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "stats",
+        "items": [
+          {
+            "value": "24",
+            "label": "narrow agents"
+          },
+          {
+            "value": "14",
+            "label": "commands"
+          },
+          {
+            "value": "8",
+            "label": "active hooks"
+          },
+          {
+            "value": "142",
+            "label": "authored tools"
+          }
+        ],
+        "note": "Nothing here is a black box. Every one of them is a file you can open, diff, and delete."
+      }
+    },
+    {
+      "id": "one-item",
+      "kind": "live-demo",
+      "title": "Follow one work item, request to release",
+      "persona": "delivery-principal",
+      "durationSec": 420,
+      "narration": "One ticket, end to end. I am going to stop it twice, and the second stop is where verification disagrees with the builder \u2014 which is the whole point of separating them.",
+      "claims": [
+        {
+          "text": "Success is made executable before any code exists \u2014 the acceptance criteria are written first and checked mechanically.",
+          "evidence": [
+            "verification-contract",
+            "live-run"
+          ]
+        },
+        {
+          "text": "The audit trail is produced as a side effect of delivery, not assembled afterwards.",
+          "evidence": [
+            "audit-trail"
+          ]
+        }
+      ],
+      "live": {
+        "repo": "REPLACE ME \u2014 the real delivery repository, not a scratch one",
+        "task": "Read the queue, turn the top ticket into an explicit plan, build only after the plan is inspectable, then verify independently of the builder.",
+        "fallback": "A recorded pass of this exact ticket, cued to the plan step, with the branch already pushed so the verification section still works.",
+        "checkpoints": [
+          "Approve the plan before any file is written.",
+          "Read the acceptance criteria together, before the build starts.",
+          "Decide as a room whether the verifier's objection blocks the release."
+        ],
+        "expectedFailure": "The verifier rejects the first build on an edge case the plan did not cover. Let it fail on stage, read the objection out loud, and amend the plan rather than the verdict.",
+        "traceSurfaces": [
+          "the queue, and which ticket was chosen",
+          "the plan, before any file is written",
+          "the acceptance criteria being checked",
+          "the verifier's verdict, including the rejection"
+        ]
+      }
+    },
+    {
+      "id": "independence",
+      "kind": "tell-show-tell",
+      "title": "Verification must be independent of the builder",
+      "persona": "delivery-principal",
+      "durationSec": 150,
+      "narration": "Three roles, deliberately separated. The one that builds does not get to decide whether it worked \u2014 and a verdict without test output is not a verdict.",
+      "visual": {
+        "kind": "columns",
+        "columns": [
+          {
+            "heading": "Verifier",
+            "points": [
+              "Does it build?",
+              "Is the diff scoped to the plan?"
+            ],
+            "tag": "Evidence required"
+          },
+          {
+            "heading": "QA expert",
+            "points": [
+              "Does it satisfy the acceptance criteria?",
+              "Are the edge cases exercised?"
+            ],
+            "tag": "Evidence required"
+          },
+          {
+            "heading": "Critic",
+            "points": [
+              "What failure mode remains?",
+              "What coupling did this introduce?"
+            ],
+            "tag": "Evidence required"
+          }
+        ],
+        "note": "PASS is not a feeling. A verdict without test output remains unproven."
+      }
+    },
+    {
+      "id": "the-asset",
+      "kind": "what-could-be",
+      "title": "The valuable loop is not generation",
+      "durationSec": 140,
+      "narration": "Generation is replaceable and getting cheaper every month. What compounds is the encoded judgement \u2014 the lessons, the constraints, the things this team decided once and never has to decide again.",
+      "claims": [
+        {
+          "text": "Every run leaves behind lessons the next run reads on the way in.",
+          "evidence": [
+            "audit-trail"
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "canvas",
+        "nodes": [
+          {
+            "id": "work",
+            "label": "Work",
+            "group": "in"
+          },
+          {
+            "id": "artifacts",
+            "label": "Artifacts",
+            "group": "mid"
+          },
+          {
+            "id": "lessons",
+            "label": "Lessons",
+            "group": "mid"
+          },
+          {
+            "id": "memory",
+            "label": "Memory",
+            "group": "out"
+          }
+        ],
+        "edges": [
+          {
+            "from": "work",
+            "to": "artifacts"
+          },
+          {
+            "from": "artifacts",
+            "to": "lessons"
+          },
+          {
+            "from": "lessons",
+            "to": "memory"
+          }
+        ]
+      }
+    },
+    {
+      "id": "the-moment",
+      "kind": "star",
+      "title": "The goal is not more agents",
+      "durationSec": 80,
+      "narration": "It is reusable judgement, with accountable humans still deciding the things that carry consequence."
+    },
+    {
+      "id": "close",
+      "kind": "close",
+      "title": "Start with one repeated workflow",
+      "persona": "practice-lead",
+      "durationSec": 100,
+      "narration": "Do not try to build the operating layer. Pick the one workflow your team repeats every week, encode the context it keeps needing, and make its verification mechanical. Then do the next one."
+    }
+  ],
+  "takeaway": "The plan and acceptance-criteria templates, the three verification roles, and the evidence layout used in this demo \u2014 enough to encode one repeated workflow of your own this week."
+}

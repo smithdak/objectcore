@@ -119,7 +119,14 @@ export function buildStoryboard(output: DemoOutput, opts: StoryboardOptions = {}
 
     const visual = b.beat.visual;
     if (!visual) continue;
-    visualSec += b.beat.durationSec;
+
+    // Only treatments that become PRE-RENDERED VIDEO count toward the balance rule:
+    // `scene` is a Remotion component and `canvas` rides along in the Frame film. The
+    // list archetypes (stats/chain/timeline/columns) are slide layouts — counting them
+    // would make an ordinarily-illustrated deck look like a reel to the gate.
+    if (visual.kind === "scene" || visual.kind === "canvas") {
+      visualSec += b.beat.durationSec;
+    }
 
     if (visual.kind === "scene") {
       scenes.push({
@@ -131,7 +138,7 @@ export function buildStoryboard(output: DemoOutput, opts: StoryboardOptions = {}
         from: frameAt(b.startSec, fps),
         durationInFrames: durationFrames(b.beat.durationSec, fps),
       });
-    } else {
+    } else if (visual.kind === "canvas") {
       canvases.push(layoutCanvas(b, visual.nodes, visual.edges));
     }
   }
