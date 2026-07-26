@@ -43,10 +43,22 @@ describe("SlidevSink", () => {
       .toContain("\ntheme: seriph\n");
   });
 
-  test("renders every claim with its evidence ref (never a bare assertion)", () => {
+  // A keynote cites; it does not wear its citations as badges. Refs render as
+  // superscript footnote markers numbered within the slide; the ids stay in the
+  // speaker notes and the evidence appendix, where they are actually looked up.
+  test("renders every claim with a footnote marker (never a bare assertion)", () => {
     const deck = deckOf(new SlidevSink().emit(derived()));
     expect(deck).toContain("Rework and review latency dominate our measured cycle time.");
-    expect(deck).toContain('<span class="demo-ref">cycle-time</span>');
+    expect(deck).toContain('<span class="demo-ref">1</span>');
+    // the live beat cites two sources on one claim
+    expect(deck).toContain('<span class="demo-ref">1,2</span>');
+  });
+
+  test("a claim with no backing renders no marker", () => {
+    const spec = validDemo();
+    spec.beats[1]!.claims![0]!.evidence = [];
+    const deck = deckOf(new SlidevSink().emit(deriveDemo(spec)));
+    expect(deck).toContain("- Rework and review latency dominate our measured cycle time.\n");
   });
 
   // The arc IS the design: layout is derived from beat kind, never authored.
