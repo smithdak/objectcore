@@ -17,8 +17,9 @@
 
 import { spawn } from "node:child_process";
 import { copyFile, mkdir } from "node:fs/promises";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
+import { findBrowser } from "./_browser";
 
 const root = join(import.meta.dir, "..");
 const projectDir = join(root, "packages", "demo-video");
@@ -51,54 +52,6 @@ if (!existsSync(join(projectDir, "node_modules"))) {
     `  (Remotion is free for individuals and companies of up to three people.)`,
   );
   process.exit(1);
-}
-
-/** Remotion downloads its own Chrome Headless Shell on first render. On some Windows
- *  setups that download reports success and then cannot be located again ("No browser
- *  found for rendering frames"), and `remotion browser ensure` fails the same way. So:
- *  look for a Chrome already on the machine and hand Remotion the path.
- *
- *  Order: an explicit override, then Playwright's bundled Chromium (present in any repo
- *  that runs browser tests), then the usual system Chrome locations. Returning
- *  undefined is fine — Remotion falls back to its own download, which is the happy path
- *  on most machines. */
-function findBrowser(): string | undefined {
-  const explicit = process.env.REMOTION_BROWSER_EXECUTABLE;
-  if (explicit && existsSync(explicit)) return explicit;
-
-  const local = process.env.LOCALAPPDATA;
-  if (local) {
-    const pw = join(local, "ms-playwright");
-    try {
-      // Newest install wins, so a Playwright upgrade does not strand this.
-      const dirs = readdirSync(pw)
-        .filter((d) => d.startsWith("chromium_headless_shell-") || d.startsWith("chromium-"))
-        .sort()
-        .reverse();
-      for (const d of dirs) {
-        for (const rel of [
-          join("chrome-headless-shell-win64", "chrome-headless-shell.exe"),
-          join("chrome-win64", "chrome.exe"),
-        ]) {
-          const candidate = join(pw, d, rel);
-          if (existsSync(candidate)) return candidate;
-        }
-      }
-    } catch {
-      // no Playwright install — fall through
-    }
-  }
-
-  for (const candidate of [
-    "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-  ]) {
-    if (existsSync(candidate)) return candidate;
-  }
-  return undefined;
 }
 
 const browser = findBrowser();
